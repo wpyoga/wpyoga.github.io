@@ -1,17 +1,17 @@
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
+  title: 'William\'s GitHub Page',
+  tagline: 'Docusaurus\' 5-minute tutorial is a LIE',
   url: 'https://wpyoga.github.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'wpyoga', // Usually your GitHub org/user name.
-  projectName: 'wpyoga.github.io', // Usually your repo name.
+  organizationName: 'wpyoga',
+  projectName: 'wpyoga.github.io',
   themeConfig: {
     navbar: {
-      title: 'My Site',
+      title: 'William\'s GitHub Page',
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
@@ -44,19 +44,28 @@ module.exports = {
           ],
         },
         {
-          title: 'Community',
+          title: 'Social Media',
           items: [
             {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              label: 'Facebook',
+              href: 'https://www.facebook.com/william.poetra.yoga',
             },
             {
-              label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
+              label: 'Instagram',
+              href: 'https://www.instagram.com/williampoetra',
             },
             {
-              label: 'Twitter',
-              href: 'https://twitter.com/docusaurus',
+              label: 'Reddit',
+              href: 'https://www.reddit.com/user/wpyh',
+            },
+          ],
+        },
+        {
+          title: 'Favourite Sites',
+          items: [
+            {
+              label: 'YouTube',
+              href: 'https://www.youtube.com',
             },
           ],
         },
@@ -69,12 +78,12 @@ module.exports = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/wpyoga/wpyoga.github.io/tree/source',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © 2021 William Poetra Yoga`,
     },
   },
   presets: [
@@ -83,15 +92,13 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
           editUrl:
-            'https://github.com/facebook/docusaurus/edit/master/website/',
+            'https://github.com/wpyoga/wpyoga.github.io/edit/source/',
         },
         blog: {
-          showReadingTime: true,
-          // Please change this to your repo.
+          showReadingTime: false,
           editUrl:
-            'https://github.com/facebook/docusaurus/edit/master/website/blog/',
+            'https://github.com/wpyoga/wpyoga.github.io/edit/source/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
