@@ -1,0 +1,1 @@
+(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[146],{6579:function(a){"use strict";a.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"inotifywait","name":"inotifywait","count":1,"permalink":"/blog/tags/inotifywait"}')}}]);

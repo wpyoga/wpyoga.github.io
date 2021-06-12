@@ -1,0 +1,1 @@
+(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[437],{6435:function(s){"use strict";s.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"vscode","name":"vscode","count":1,"permalink":"/blog/tags/vscode"}')}}]);
