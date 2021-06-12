@@ -21,7 +21,9 @@ Note that this main branch contains the static content only. So if you're like m
 
 In this case, Docusaurus can actually deploy the site with a command, as described [here](https://docusaurus.io/docs/deployment#deploying-to-github-pages)
 
-I find this a bit clunky, and there is actually another option: use the same branch for both source and generated content, and specify a subdirectory where the generated content resides. This subdirectory will be served as the root of the GitHub Pages site.
+I find this a bit clunky, and there is actually another option: use the same branch for both source and generated content, and use the `docs` subdirectory to serve the root of the GitHub Pages site. However, `docs` is not an intuitive for a website root, so... no, I won't use this option.
+
+Another possibility offered by GitHub is to use the `master` branch for the source tree, and push my generated content to a special `gh-pages` branch. I've heard that this special branch, when created, also triggers the publishing of a GitHub Pages site.
 
 
 
