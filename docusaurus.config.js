@@ -9,6 +9,7 @@ module.exports = {
   favicon: 'img/favicon.ico',
   organizationName: 'wpyoga',
   projectName: 'wpyoga.github.io',
+  deploymentBranch: 'gh-pages',
   themeConfig: {
     navbar: {
       title: 'William\'s GitHub Page',

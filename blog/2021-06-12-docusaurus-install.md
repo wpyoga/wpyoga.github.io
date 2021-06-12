@@ -100,7 +100,25 @@ Build the site:
 $ yarn build
 ```
 
-Then push the `build` directory to a new `gh-pages` branch:
+After `yarn` has done building the site, now we can deploy it:
+
+```console
+$ GIT_USER=wpyoga DEPLOYMENT_BRANCH=gh-pages USE_SSH=true yarn deploy
+```
+
+
+
+
+
+
+
+
+
+
+
+## What doesn't work
+
+After building the site, push the `build` directory to a new `gh-pages` branch:
 
 ```console
 $ git subtree split -P build -b gh-pages
@@ -124,10 +142,7 @@ To github.com:wpyoga/wpyoga.github.io.git
 
 Because this repository is the special `_username_.github.io` repository, GitHub doesn't treat the `gh-pages` branch here as being special. So I need to [manually specify](https://github.com/wpyoga/wpyoga.github.io/settings/pages) the `gh-pages` branch to serve the site root.
 
-
-
-
-
+The problem is, now I cannot update the `gh-pages` branch. I need to read Docusaurus' source code in `lib/deploy.ts` and see how they manage to make `yarn deploy` work. Looking at the log output, it seems that Docusaurus clones the `gh-pages` branch to a temporary location, deletes everything, overwrites the content with new files, and then pushes the changes back to the remote branch.
 
 ## Changing usernames or organization names
 
