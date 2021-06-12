@@ -122,6 +122,7 @@ To github.com:wpyoga/wpyoga.github.io.git
  * [new branch]      gh-pages -> gh-pages
 ```
 
+Because this repository is the special `_username_.github.io` repository, GitHub doesn't treat the `gh-pages` branch here as being special. So I need to [manually specify](https://github.com/wpyoga/wpyoga.github.io/settings/pages) the `gh-pages` branch to serve the site root.
 
 
 
