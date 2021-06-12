@@ -25,8 +25,102 @@ I find this a bit clunky, and there is actually another option: use the same bra
 
 Another possibility offered by GitHub is to use the `master` branch for the source tree, and push my generated content to a special `gh-pages` branch. I've heard that this special branch, when created, also triggers the publishing of a GitHub Pages site.
 
+Since I already have the `master` and `source` branches above, I would need to delete the `master` branch. The problem is, GitHub didn't want to delete the `master` branch:
 
+```console
+$ git push origin --delete master
+To github.com:wpyoga/wpyoga.github.io.git
+ ! [remote rejected] master (refusing to delete the current branch: refs/heads/master)
+error: failed to push some refs to 'git@github.com:wpyoga/wpyoga.github.io.git'
+```
 
+It turns out that GitHub just doesn't want to delete the default branch. Note that this concept of "default branch" is not from git, but rather from GitHub.
+
+Anyway, I changed the [default branch](https://github.com/wpyoga/wpyoga.github.io/settings/branches) to `source` for now, and now I can delete the `master` branch:
+
+```console
+$ git push origin --delete master
+To github.com:wpyoga/wpyoga.github.io.git
+ - [deleted]         master
+```
+
+Then I want to rename the `source` branch to `master`:
+
+```console
+$ git branch -D master
+Deleted branch master (was 67c2b46).
+$ git branch -m source master
+$ git status
+On branch master
+Your branch is up to date with 'origin/source'.
+$ git push origin HEAD
+Total 0 (delta 0), reused 0 (delta 0)
+remote: 
+remote: Create a pull request for 'master' on GitHub by visiting:
+remote:      https://github.com/wpyoga/wpyoga.github.io/pull/new/master
+remote: 
+To github.com:wpyoga/wpyoga.github.io.git
+ * [new branch]      HEAD -> master
+```
+
+At this point the `source` branch is useless, so I changed the default branch to `master` again, then deleted the remote `source` branch:
+
+```console
+$ git push origin --delete source
+To github.com:wpyoga/wpyoga.github.io.git
+ - [deleted]         source
+```
+
+At this point the remote branch has been deleted, but the local repo still references the old one:
+
+```console
+$ git status
+On branch master
+Your branch is based on 'origin/source', but the upstream is gone.
+  (use "git branch --unset-upstream" to fixup)
+```
+
+So I dutifully followed the recommendations:
+
+```console
+$ git branch --unset-upstream
+$ git push --set-upstream origin master
+Branch 'master' set up to track remote branch 'master' from 'origin'.
+Everything up-to-date
+$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+```
+
+Now we're set!
+
+Build the site:
+
+```console
+$ yarn build
+```
+
+Then push the `build` directory to a new `gh-pages` branch:
+
+```console
+$ git subtree split -P build -b gh-pages
+Created branch 'gh-pages'
+d7d2eaa20128724d8234c817151c16d0931dec98
+$ git push origin gh-pages
+Enumerating objects: 117, done.
+Counting objects: 100% (117/117), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (83/83), done.
+Writing objects: 100% (117/117), 322.93 KiB | 1.02 MiB/s, done.
+Total 117 (delta 29), reused 54 (delta 8)
+remote: Resolving deltas: 100% (29/29), done.
+remote: 
+remote: Create a pull request for 'gh-pages' on GitHub by visiting:
+remote:      https://github.com/wpyoga/wpyoga.github.io/pull/new/gh-pages
+remote: 
+To github.com:wpyoga/wpyoga.github.io.git
+ * [new branch]      gh-pages -> gh-pages
+```
 
 
 
