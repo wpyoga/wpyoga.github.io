@@ -7,7 +7,7 @@ When doing some Java development on VSCode, I wanted to use inotifywait to watch
 
 It seemed like a neat and simple idea. However, as soon as I set up inotifywait to watch the source directory, I ran into problems and had to abandon the idea (for the time being).
 
-<!--truncate-->
+<!-- truncate -->
 
 So the project is built using Maven. The problems are:
 

@@ -11,7 +11,7 @@ $ GIT_USER=wpyoga DEPLOYMENT_BRANCH=gh-pages USE_SSH=true yarn deploy
 
 If we don't use SSH, we will be prompted for a password. Right now I don't even know my own password (it's stored in my password manager), so this is not a good idea. And I already use SSH to work on GitHub repositories anyway. So this is not a good way to do things.
 
-<!--truncate-->
+<!-- truncate -->
 
 But wait -- if we already use SSH, why do we need to specify GIT_USER again? That's exactly... what another user mentioned in [Docusaurus#3454](https://github.com/facebook/docusaurus/issues/3454).
 
