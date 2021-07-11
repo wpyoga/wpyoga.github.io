@@ -1,6 +1,6 @@
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
-  title: 'William\'s GitHub Page',
+  title: 'William\'s GitHub Pages',
   tagline: 'Docusaurus\' 5-minute tutorial is a LIE',
   url: 'https://wpyoga.github.io',
   baseUrl: '/',
@@ -12,7 +12,7 @@ module.exports = {
   deploymentBranch: 'gh-pages',
   themeConfig: {
     navbar: {
-      title: 'William\'s GitHub Page',
+      title: 'William\'s GitHub Pages site',
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
