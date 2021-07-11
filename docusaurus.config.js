@@ -79,12 +79,12 @@ module.exports = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/wpyoga/wpyoga.github.io/tree/source',
+              href: 'https://github.com/wpyoga/wpyoga.github.io',
             },
           ],
         },
       ],
-      copyright: `Copyright © 2021 William Poetra Yoga`,
+      copyright: `Copyright © 2021 William Poetra Yoga / gmail: william dot poetra / gmail: wpyoga86`,
     },
   },
   presets: [
@@ -94,12 +94,12 @@ module.exports = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
-            'https://github.com/wpyoga/wpyoga.github.io/edit/source/',
+            'https://github.com/wpyoga/wpyoga.github.io/edit/master',
         },
         blog: {
           showReadingTime: false,
           editUrl:
-            'https://github.com/wpyoga/wpyoga.github.io/edit/source/',
+            'https://github.com/wpyoga/wpyoga.github.io/edit/master',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
