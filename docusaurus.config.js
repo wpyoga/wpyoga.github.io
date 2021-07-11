@@ -110,6 +110,10 @@ module.exports = {
             'https://github.com/wpyoga/wpyoga.github.io/edit/master',
         },
         blog: {
+          blogTitle: "William's Blog",
+          blogDescription: "Mostly tech, but just about anything at all",
+          blogSidebarCount: 'ALL',
+          blogSidebarTitle: 'All posts',
           showReadingTime: false,
           editUrl:
             'https://github.com/wpyoga/wpyoga.github.io/edit/master',
