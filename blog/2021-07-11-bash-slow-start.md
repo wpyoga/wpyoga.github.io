@@ -110,6 +110,14 @@ Now the timings have improved:
 0.018 bashrc check
 ```
 
+## A little snag
+
+With this setup, `yarn` cannot be called without calling `nvm` or `node` or `npm` first, because it's not in the PATH.
+
+No solutions for this yet -- maybe we can do some kind of late-loading instead of lazy-loading.
+
+Or maybe, we can make nvm load faster... somehow?
+
 ## Anything else?
 
 Let's use the same technique for SDKMAN! as well then:
