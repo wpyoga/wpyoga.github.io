@@ -71,11 +71,24 @@ module.exports = {
           ],
         },
         {
+          title: 'My Websites',
+          items: [
+            {
+              label: 'IP Address Check',
+              href: 'https://ipaddr.my.id',
+            },
+          ],
+        },
+        {
           title: 'More',
           items: [
             {
               label: 'Blog',
               to: '/blog',
+            },
+            {
+              label: 'My Old Blog',
+              href: 'https://wpyoga.blogspot.com',
             },
             {
               label: 'GitHub',
