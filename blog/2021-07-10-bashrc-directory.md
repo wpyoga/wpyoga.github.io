@@ -40,6 +40,44 @@ fi
 
 Also, someone else has [blogged about this topic](https://waxzce.medium.com/use-bashrc-d-directory-instead-of-bloated-bashrc-50204d5389ff) on Medium. However, some Medium articles are blocked by a paywall, and I'm not sure if that article is a paid article, or will be made a paid article at some point in the future, so I'm making this blog post instead. In contrast, this blog will always be free, at least as long as GitHub continues to provide GitHub Pages for free.
 
+## Further information
+
+`~/.bashrc.d`
+
+- (2002) https://bugs.gentoo.org/4854
+- (2011) http://blogs.perl.org/users/chisel/2011/08/managing-my-shell-setup.html
+- (2012) https://groups.google.com/g/linux.debian.bugs.dist/c/1mDbDViPFFQ
+- (2012) https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=675008
+- (2015) https://freesoft.dev/program/31617374
+- (2015) https://blog.sanctum.geek.nz/tag/bashrc-d/
+- (2016) https://lsbbugs.linuxfoundation.org/show_bug.cgi?id=4167
+- (2016) https://github.com/jdcapa/bashrc.d
+- (2017) https://waxzce.medium.com/use-bashrc-d-directory-instead-of-bloated-bashrc-50204d5389ff
+- (2017) https://github.com/oskar404/.bashrc.d
+- (2019) https://sneak.berlin/20191011/stupid-unix-tricks/
+- (2019) https://bugzilla.redhat.com/show_bug.cgi?id=1726397
+- (2019) https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=931353
+- (2019) https://bugs.launchpad.net/ubuntu/+source/bash/+bug/1835077
+- (2020) https://source.arknet.ch/fmorgner/dotfiles/-/tree/16f950b2ce140a81e45bcad99ea142a6f3f7a7f2/bashrc.d
+- (2020) https://dev.to/swiknaba/how-to-organize-your-bash-profile-20eb
+- (2020) https://lab.retarded.farm/zappel/zGentoo-playground/-/tree/22e288c8b0ed166d1bc0050f9f00e3fe4708b0d4/etc/bash/bashrc.d
+- (2021) https://blog.jbriault.fr/bashrc-d/
+- https://g.gg42.eu/framagit/conf-99-basic_config_debian/commit/56f82be3cc0f98af05989f34f44817e90d0e814f
+- https://write.as/bpsylevc6lliaspe
+- https://timnash.co.uk/bashing-my-bashrc-productivity-fridays/
+
+
+`/etc/profile.d`:
+
+- https://eng.libretexts.org/Bookshelves/Computer_Science/Operating_Systems/Linux_-_The_Penguin_Marches_On_(McClanahan)/02%3A_User_Group_Administration/5.03%3A_System_Wide_User_Profiles/5.03.2_System_Wide_User_Profiles%3A_The_etc-profile.d_Directory
+- (2014) https://askubuntu.com/questions/438150/why-are-scripts-in-etc-profile-d-being-ignored-system-wide-bash-aliases
+
+
+`profile` and `bashrc` in general:
+
+- (2013) https://bencane.com/2013/09/16/understanding-a-little-more-about-etcprofile-and-etcbashrc/
+- (2017) https://scriptingosx.com/2017/04/about-bash_profile-and-bashrc-on-macos/
+
 ## Simple implementation
 
 To implement the `~/.bashrc.d` scheme, we first need to make that directory, and then move the original rc file into that directory:
@@ -120,4 +158,5 @@ fi
 ### BASHRC END
 ```
 
-However, this might cause a delay when opening a new terminal. If you feel that it is too slow, then please just use the [simple implementation](#simple-implementation) instead.
+This looks bloated and unnecessary. But this section takes only 9 ms on my laptop (i5-5200u), so it may not be so slow after all. Still, if you think it's too complicated, you can use the [simple implementation](#simple-implementation) instead.
+
