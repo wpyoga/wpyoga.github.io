@@ -1,7 +1,7 @@
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
-  title: 'William\'s GitHub Pages',
-  tagline: 'Docusaurus\' 5-minute tutorial is a LIE',
+  title: "William's GitHub Pages",
+  tagline: "Docusaurus' 5-minute tutorial is a LIE",
   url: 'https://wpyoga.github.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -12,7 +12,7 @@ module.exports = {
   deploymentBranch: 'gh-pages',
   themeConfig: {
     navbar: {
-      title: 'William\'s GitHub Pages site',
+      title: "William's GitHub Pages site",
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
@@ -24,7 +24,8 @@ module.exports = {
           position: 'left',
           label: 'Tutorial',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
+        { to: '/blog', label: 'Blog', position: 'left' },
+        { to: 'https://wpyoga.github.io/boto3-docs-reformat/html', label: 'Boto3 Docs', position: 'left' },
         {
           href: 'https://github.com/facebook/docusaurus',
           label: 'GitHub',
@@ -106,17 +107,15 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl:
-            'https://github.com/wpyoga/wpyoga.github.io/edit/master',
+          editUrl: 'https://github.com/wpyoga/wpyoga.github.io/edit/master',
         },
         blog: {
           blogTitle: "William's Blog",
-          blogDescription: "Mostly tech, but just about anything at all",
+          blogDescription: 'Mostly tech, but just about anything at all',
           blogSidebarCount: 'ALL',
           blogSidebarTitle: 'All posts',
           showReadingTime: false,
-          editUrl:
-            'https://github.com/wpyoga/wpyoga.github.io/edit/master',
+          editUrl: 'https://github.com/wpyoga/wpyoga.github.io/edit/master',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
