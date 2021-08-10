@@ -99,6 +99,10 @@ module.exports = {
               label: 'GitHub',
               href: 'https://github.com/wpyoga/wpyoga.github.io',
             },
+            {
+              label: 'Unix Horror Stories',
+              href: 'https://www-uxsup.csx.cam.ac.uk/misc/horror.txt',
+            },
           ],
         },
       ],
