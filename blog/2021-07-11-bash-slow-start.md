@@ -13,7 +13,7 @@ This initially started when I was [looking at bash start-up time](/blog/2021/07/
 
 Here's how I found out, by printing the time taken to execute commands:
 
-```sh
+```shell
 for i in "${HOME}/.bashrc.d"/[0-9][0-9]-*.bashrc; do
   if [ -r "$i" ]; then
     export TIMEFORMAT="%R $i"
@@ -38,7 +38,7 @@ That gives me this printout when I open a new terminal:
 
 There is another thing that I should check:
 
-```sh
+```shell
 export TIMEFORMAT='%R bashrc check'
 time if which mktemp >/dev/null 2>&1; then
   ...
@@ -71,7 +71,7 @@ But [this one](http://broken-by.me/lazy-load-nvm/) looks the most promising.
 
 So I adapted it for my own use:
 
-```sh
+```shell
 nvm() {
   unset -f nvm node npm
   export NVM_DIR="${HOME}/.nvm"
@@ -122,7 +122,7 @@ Or maybe, we can make nvm load faster... somehow?
 
 Let's use the same technique for SDKMAN! as well then:
 
-```sh
+```shell
 sdk() {
   unset -f sdk
   export SDKMAN_DIR="${HOME}/.sdkman"

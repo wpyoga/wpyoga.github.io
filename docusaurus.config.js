@@ -9,8 +9,13 @@ module.exports = {
   favicon: 'img/favicon.ico',
   organizationName: 'wpyoga',
   projectName: 'wpyoga.github.io',
-  deploymentBranch: 'gh-pages',
+  // deploymentBranch: 'gh-pages',
   themeConfig: {
+    prism: {
+      theme: require('prism-react-renderer/themes/github'),
+      darkTheme: require('prism-react-renderer/themes/palenight'),
+      additionalLanguages: ['shell-session'],
+    },
     navbar: {
       title: "William's GitHub Pages site",
       logo: {

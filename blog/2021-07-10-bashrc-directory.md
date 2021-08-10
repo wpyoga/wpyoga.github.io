@@ -11,7 +11,7 @@ When we install a new development environment, the installer will usually modify
 
 By using a directory, we can add and remove customizations by simply adding and removing files. Consider this example: when we install [SDKMAN!](https://sdkman.io/), the installer adds these lines to `~/.bashrc` by default:
 
-```sh
+```shell
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="/home/william/.sdkman"
 [[ -s "/home/william/.sdkman/bin/sdkman-init.sh" ]] && source "/home/william/.sdkman/bin/sdkman-init.sh"
@@ -27,7 +27,7 @@ Some installers even had to let the user edit `~/.bashrc` by hand.
 
 Actually, this is not a new idea. The directory `/etc/profile.d` exists for the same reason, albeit for software installed directly onto the system. The contents of this directory is sourced in by `/etc/profile`, as seen in the snippet below:
 
-```sh
+```shell
 if [ -d /etc/profile.d ]; then
   for i in /etc/profile.d/*.sh; do
     if [ -r $i ]; then
@@ -82,7 +82,7 @@ Also, someone else has [blogged about this topic](https://waxzce.medium.com/use-
 
 To implement the `~/.bashrc.d` scheme, we first need to make that directory, and then move the original rc file into that directory:
 
-```sh
+```shell
 $ cd
 $ mkdir .bashrc.d
 $ mv -i .bashrc .bashrc.d/00-default.bashrc
@@ -90,7 +90,7 @@ $ mv -i .bashrc .bashrc.d/00-default.bashrc
 
 After that, we need to make a replacement `~/.bashrc` file that sources all the scripts inside `~/.bashrc.d`. This is basically an adaptation of the code snippet in `/etc/profile`:
 
-```sh
+```shell
 for i in "${HOME}/.bashrc.d"/[0-9][0-9]-*.bashrc; do
   if [ -r "$i" ]; then
     . "$i"
@@ -111,7 +111,7 @@ An easy way to do that, is by using markers in `~/.bashrc`. The markers tell us 
 
 To achieve this, we modify `~/.bashrc` even further:
 
-```sh
+```shell
 ### BASHRC START
 for i in "${HOME}/.bashrc.d"/[0-9][0-9]-*.bashrc; do
   if [ -r "$i" ]; then

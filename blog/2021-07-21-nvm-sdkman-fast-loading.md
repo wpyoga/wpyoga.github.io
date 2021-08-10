@@ -21,7 +21,7 @@ To solve this, we need something that:
 
 After some thinking and experimentation, I have come up with a new solution:
 
-```sh title=".bashrc.d/50-nvm.bashrc"
+```shell title=".bashrc.d/50-nvm.bashrc"
 _DEFAULT=
 # read the first line only
 [ -s "${HOME}/.nvm/alias/default" ] && read -r _DEFAULT <"${HOME}/.nvm/alias/default"
@@ -68,7 +68,7 @@ When the script is sourced in by `.bashrc`, it will first try to read the defaul
 
 This is the environment on my laptop:
 
-```console
+```shell-session
 william@william-ThinkPad-T450s: ~$ cat .nvm/alias/default
 12
 william@william-ThinkPad-T450s: ~$ ls -l .nvm/versions/node/v12*/bin/*
@@ -121,7 +121,7 @@ The placeholder function for `yo` is there, I just didn't show it.
 
 Loading time is still fast enough:
 
-```console
+```shell-session
 $ time . .bashrc.d/50-nvm.bashrc 
 
 real	0m0.002s
@@ -133,29 +133,29 @@ sys	0m0.001s
 
 With this loading script, `nvm` still functions correctly:
 
-```console
+```shell-session
 $ yarn --version
 1.22.10
 ```
 
-```console
+```shell-session
 $ node --version
 v12.22.1
 ```
 
-```console
+```shell-session
 $ nvm --version
 0.38.0
 ```
 
-```console
+```shell-session
 $ npm --version
 7.18.1
 ```
 
 Also, it still respects `.nvmrc` as described [here](https://github.com/nvm-sh/nvm#nvmrc):
 
-```console
+```shell-session
 william@william-ThinkPad-T450s: ~$ mkdir test
 william@william-ThinkPad-T450s: ~$ echo 14 >test/.nvmrc
 william@william-ThinkPad-T450s: ~$ mkdir test/foo
@@ -187,7 +187,7 @@ Please let me know if you have any other potential pitfalls and shortcomings
 
 Well, SDKMAN! is a bit simpler than `nvm`:
 
-```sh title=".bashrc.d/50-sdkman.bashrc"
+```shell title=".bashrc.d/50-sdkman.bashrc"
 _SDK_BIN_LIST=
 for _EXEC in "${HOME}/.sdkman/candidates"/*/current/bin/*; do
   if [ -x "${_EXEC}" ]; then

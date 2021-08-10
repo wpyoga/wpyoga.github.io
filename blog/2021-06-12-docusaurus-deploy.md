@@ -5,7 +5,7 @@ tags: [docusaurus, blog]
 
 Before, we need to run this command to deploy a Docusaurus site to GitHub Pages:
 
-```console
+```shell-session
 $ GIT_USER=wpyoga DEPLOYMENT_BRANCH=gh-pages USE_SSH=true yarn deploy
 ```
 
@@ -18,7 +18,7 @@ But wait -- if we already use SSH, why do we need to specify GIT_USER again? Tha
 Let's take this a few steps further:
 
 - If we use SSH, our remote origin URL looks like this: `git@github.com:wpyoga/wpyoga.github.io.git`
-    ```console
+    ```shell-session
     $ git config --get remote.origin.url
     git@github.com:wpyoga/wpyoga.github.io.git
     ```
@@ -80,7 +80,7 @@ So I made a backup at `node_modules/@docusaurus/core/lib/commands/deploy.js.orig
 
 But then `yarn build` complains:
 
-```console
+```shell-session
 $ yarn build
 yarn run v1.22.10
 $ docusaurus build
@@ -130,7 +130,7 @@ So we patch another file:
 
 And now `yarn build` succeeds:
 
-```console
+```shell-session
 $ yarn build
 yarn run v1.22.10
 $ docusaurus build
@@ -159,7 +159,7 @@ Done in 12.32s.
 
 And `yarn deploy` also succeeds:
 
-```console
+```shell-session
 $ yarn deploy
 yarn run v1.22.10
 $ docusaurus deploy

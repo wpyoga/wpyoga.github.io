@@ -7,7 +7,7 @@ I got an error while trying to build this blog in a temporary directory. This mi
 
 <!-- truncate -->
 
-```console
+```shell-session
 $ yarn build --out-dir "${TMPDIR}"
 yarn run v1.22.10
 $ docusaurus build --out-dir /tmp/tmp.pEBNPFYg2h
@@ -33,7 +33,7 @@ I thought it was due to the temporary directory being outside of the source dire
 
 I found the script executing the `build` command at `node_modules/@docusaurus/core/lib/commands/build.js`. I added a few checkpoints, and re-ran the script:
 
-```console
+```shell-session
 $ yarn build --out-dir test.dir
 yarn run v1.22.10
 $ docusaurus build --out-dir test.dir
@@ -100,7 +100,7 @@ It seems that webpack, or one of its plugins, try to differentiate files from di
 
 These commands work though, because the file name does not contain a dot. Only the pathname does, and the preceding path components cannot be files.
 
-```console
+```shell-session
 $ yarn build --out-dir tmp.123/aaa
 $ yarn build --out-dir /tmp/tpm.123456/bbb
 ```

@@ -13,7 +13,7 @@ We can use `time`, which is a special bash keyword. Instead of using a separate 
 
 Following the implementation [here](/blog/2021/07/10/bashrc-directory#self-cleaning-implementation), we add some profiling info to `~/.bashrc`:
 
-```sh
+```shell
 for i in "${HOME}/.bashrc.d"/[0-9][0-9]-*.bashrc; do
   if [ -r "$i" ]; then
     export TIMEFORMAT="%R $i"
@@ -39,7 +39,7 @@ This showed that `nvm` makes bash load slowly:
 
 So, I began timing its execution:
 
-```sh
+```shell
 nvm_process_parameters() {
   local NVM_AUTO_MODE
   NVM_AUTO_MODE='use'
@@ -59,7 +59,7 @@ nvm_process_parameters "$@"
 
 also:
 
-```sh
+```shell
 nvm_auto() {
   echo nvm_auto "$@"
   local NVM_MODE
@@ -97,7 +97,7 @@ nvm_auto() {
 
 In some places, I printed out the current time instead of timing the execution:
 
-```sh
+```shell
     "use")
       local PROVIDED_VERSION
       local NVM_SILENT
@@ -177,7 +177,7 @@ NVM_CURRENT=none
 
 For the missing `date` command output, it's just a matter of shell redirection. Removing the stdout redirection to `/dev/null` shows the output:
 
-```sh
+```shell
 nvm_auto() {
   echo nvm_auto "$@"
   local NVM_MODE
@@ -227,7 +227,7 @@ So basically what we need to do is, save the environment variable `TIMEFORMAT` b
 
 So I attempted a naive fix:
 
-```sh
+```shell
 nvm_process_parameters() {
   local NVM_AUTO_MODE
   NVM_AUTO_MODE='use'
@@ -247,7 +247,7 @@ nvm_process_parameters() {
 nvm_process_parameters "$@"
 ```
 
-```sh
+```shell
 nvm_auto() {
   echo nvm_auto "$@"
   local NVM_MODE
@@ -321,7 +321,7 @@ Eventually I realized that we need to do a little bit more. When we save the con
 
 So this is the first level, which is OK:
 
-```sh
+```shell
 nvm_process_parameters() {
   local NVM_AUTO_MODE
   NVM_AUTO_MODE='use'
@@ -343,7 +343,7 @@ nvm_process_parameters "$@"
 
 It calls `nvm_auto`, which is the second level:
 
-```sh
+```shell
 nvm_auto() {
   echo nvm_auto "$@"
   local NVM_MODE
@@ -385,7 +385,7 @@ nvm_auto() {
 
 Note that within the same function, we don't need to use different variables to save `TIMEFORMAT`. This is because the `time` invocations are not nested. However, in the above example, we need to use yet another variable in `nvm_resolve_local_alias`:
 
-```sh
+```shell
 nvm_resolve_local_alias() {
   if [ -z "${1-}" ]; then
     return 1
@@ -445,7 +445,7 @@ Note that we could not use arrays, because POSIX shell does not have an array ty
 
 There is an alternative method, which is simpler and shows the execution depth, but it is slower:
 
-```sh
+```shell
 nvm_process_parameters() {
   local NVM_AUTO_MODE
   NVM_AUTO_MODE='use'
@@ -464,7 +464,7 @@ nvm_process_parameters() {
 nvm_process_parameters "$@"
 ```
 
-```sh
+```shell
 nvm_auto() {
   echo nvm_auto "$@"
   local NVM_MODE
@@ -502,7 +502,7 @@ nvm_auto() {
 }
 ```
 
-```sh
+```shell
 nvm_resolve_local_alias() {
   if [ -z "${1-}" ]; then
     return 1

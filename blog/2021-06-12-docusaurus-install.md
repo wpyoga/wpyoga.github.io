@@ -27,7 +27,7 @@ However, my preferred method is to use the `master` branch for the source tree, 
 
 `yarn deploy` will build and deploy the site:
 
-```console
+```shell-session
 $ GIT_USER=wpyoga DEPLOYMENT_BRANCH=gh-pages USE_SSH=true yarn deploy
 ```
 
@@ -39,13 +39,13 @@ It doesn't look pretty, and it's not easy to remember. Fortunately, I have [a be
 
 First, checkout the site serving branch (`gh-pages` in our example) to a temporary directory:
 
-```console
+```shell-session
 $ git worktree add --no-checkout /tmp/build gh-pages
 ```
 
 Generate the site and copy it into the temporary directory:
 
-```console
+```shell-session
 $ yarn build
 $ cp -rT build /tmp/build
 ```
@@ -57,7 +57,7 @@ Notes:
 
 Push the files to GitHub:
 
-```console
+```shell-session
 $ cd /tmp/build
 $ git add .
 $ git commit -m "new build at $(date)"
@@ -67,7 +67,7 @@ $ cd -
 
 Remove the temporary directory:
 
-```console
+```shell-session
 $ git worktree remove /tmp/build
 ```
 
@@ -98,7 +98,7 @@ Note: we use a custom template because there [might be a bug](/blog/2021/06/13/p
 
 After building the site, push the `build` directory to a new `gh-pages` branch:
 
-```console
+```shell-session
 $ git subtree split -P build -b gh-pages
 Created branch 'gh-pages'
 d7d2eaa20128724d8234c817151c16d0931dec98
@@ -144,14 +144,14 @@ For the special repository, following GitHub's conventions is somewhat counterin
 
 I pushed the source code from the `master` branch to the `source` branch.
 
-```console
+```shell-session
 $ git branch source
 $ git push --set-upstream origin source
 ```
 
 Then I would need to delete the `master` branch. The problem is, GitHub didn't want to delete the `master` branch:
 
-```console
+```shell-session
 $ git push --delete origin master
 To github.com:wpyoga/wpyoga.github.io.git
  ! [remote rejected] master (refusing to delete the current branch: refs/heads/master)
@@ -162,7 +162,7 @@ It turns out that GitHub just doesn't want to delete the default branch. Note th
 
 Anyway, I changed the [default branch](https://github.com/wpyoga/wpyoga.github.io/settings/branches) to `source` for now, and now I can delete the `master` branch:
 
-```console
+```shell-session
 $ git push --delete origin master
 To github.com:wpyoga/wpyoga.github.io.git
  - [deleted]         master
@@ -177,7 +177,7 @@ So I wanted to move the source code back to the `master` branch.
 
 I deleted the `master` branch, renamed the `source` branch to `master`, and then pushed the changes:
 
-```console
+```shell-session
 $ git branch -D master
 Deleted branch master (was 67c2b46).
 $ git branch -m source master
@@ -196,7 +196,7 @@ To github.com:wpyoga/wpyoga.github.io.git
 
 At this point the `source` branch was useless, so I changed the default branch to `master` again (on GitHub), then deleted the remote `source` branch:
 
-```console
+```shell-session
 $ git push --delete origin source
 To github.com:wpyoga/wpyoga.github.io.git
  - [deleted]         source
@@ -204,7 +204,7 @@ To github.com:wpyoga/wpyoga.github.io.git
 
 At this point the remote branch has been deleted, but the local repo still references the old one:
 
-```console
+```shell-session
 $ git status
 On branch master
 Your branch is based on 'origin/source', but the upstream is gone.
@@ -213,7 +213,7 @@ Your branch is based on 'origin/source', but the upstream is gone.
 
 So I dutifully followed the recommendations:
 
-```console
+```shell-session
 $ git branch --unset-upstream
 $ git push --set-upstream origin master
 Branch 'master' set up to track remote branch 'master' from 'origin'.

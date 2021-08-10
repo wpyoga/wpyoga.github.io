@@ -23,13 +23,13 @@ Oh, and by the way, not mentioning `master` and `slave` in everyday life does no
 
 If you have accidentally created a "main" branch, you can safely rename it. First, rename the branch locally:
 
-```console
+```shell-session
 $ git branch --move main master
 ```
 
 Then, push the `master` branch to GitHub:
 
-```console
+```shell-session
 $ git push --set-upstream origin master
 $ git remote set-head origin master
 ```
