@@ -23,9 +23,11 @@ This is done from on the cloud infrastructure, and can be easily done using the 
 
 Once logged in to the Cloud Console, open the instance to be configured and perform the following actions:
 
-1. Configure VCN: add an IPv6 CIDR block
+1. Configure VCN:
 
-1. Configure Subnet: enable the CIDR block
+    1. CIDR Blocks: add an IPv6 CIDR block
+
+    1. Subnets: Edit -> enable the CIDR block
 
 1. Configure Security List:
 
@@ -33,17 +35,36 @@ Once logged in to the Cloud Console, open the instance to be configured and perf
 
     - Egress Rules: allow traffic of all protocols to all destinations (`::/0`)
 
-1. Configure Route Table: add default route to all IPv6 destinations (`::/0`)
+1. Configure Route Table: Route Rules -> add IPv6 route rule to `::/0` targeting the default Internet Gateway
 
-1. Configure VNIC: assign an IPv6 address
+1. Configure VNIC: IPv6 Addresses -> assign an IPv6 address
 
 At this point, an IPv6 address has been assigned to the instance, and the network has been set up properly.
+
+If you add new instances into the same VCN, then you would only need to assign a new IPv6 address to the VNIC, no need to reconfigure the other resources (CIDR Blocks, subnets, security lists, route table).
 
 ## Obtain the IPv6 address from the instance
 
 Next, obtain the IPv6 address from within the instance itself.
 
-### Oracle Linux
+### Oracle Linux 7.9
+
+`dhcpv6-client` service is already enabled by default.
+
+Create a new file `/etc/cloud/cloud.cfg.d/99_ipv6.cfg`:
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    enp0s3:
+      dhcp: true
+      dhcp6: true
+```
+
+TODO: somehow my Ampere instance doesn't work yet
+
+### Oracle Linux 8
 
 SSH into the instance, and [add DHCPv6 service](https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/ipv6.htm#os_config) to the firewall:
 
@@ -91,3 +112,5 @@ $ sudo systemctl restart systemd-networkd
 ```
 
 That's it. It's much simpler isn't it? :)
+
+P.S. on my Ampere instance, the IPv6 is applied almost as soon as I configured it.
