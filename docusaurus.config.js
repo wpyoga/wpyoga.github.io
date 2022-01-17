@@ -4,12 +4,13 @@ module.exports = {
   tagline: "Docusaurus' 5-minute tutorial is a LIE",
   url: 'https://wpyoga.github.io',
   baseUrl: '/',
+  trailingSlash: false,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'wpyoga',
   projectName: 'wpyoga.github.io',
-  // deploymentBranch: 'gh-pages',
+  deploymentBranch: 'gh-pages',
   themeConfig: {
     prism: {
       theme: require('prism-react-renderer/themes/github'),
