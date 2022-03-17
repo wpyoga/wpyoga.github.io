@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[8920],{4148:function(s){s.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"/blog/tags/hdd","name":"hdd","count":1,"permalink":"/blog/tags/hdd"}')}}]);

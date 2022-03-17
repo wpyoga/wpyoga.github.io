@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[5341],{4156:function(s){s.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"/blog/tags/bashrc-d","name":"bashrc.d","count":1,"permalink":"/blog/tags/bashrc-d"}')}}]);

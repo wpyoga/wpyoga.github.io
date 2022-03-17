@@ -1,0 +1,1587 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>William's GitHub Pages Blog</title>
+        <link>https://wpyoga.github.io/blog</link>
+        <description>William's GitHub Pages Blog</description>
+        <lastBuildDate>Thu, 17 Mar 2022 00:00:00 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <item>
+            <title><![CDATA[Migrating Windows 10 from HDD to SSD using Linux]]></title>
+            <link>https://wpyoga.github.io/blog/2022/03/17/migrating-windows-10</link>
+            <guid>/2022/03/17/migrating-windows-10</guid>
+            <pubDate>Thu, 17 Mar 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[Nowadays, with the price of SSDs getting cheaper all the time, we would often upgrade an existing laptop HDD into an SSD. And most of the time, in order to do that, it is best to migrate the existing Windows installation on the HDD.]]></description>
+            <content:encoded><![CDATA[<p>Nowadays, with the price of SSDs getting cheaper all the time, we would often upgrade an existing laptop HDD into an SSD. And most of the time, in order to do that, it is best to migrate the existing Windows installation on the HDD.</p><p>Migrating a Windows 10 installation from HDD to SSD is usually done using Windows tools like the <a href="https://semiconductor.samsung.com/consumer-storage/support/tools/">Samsung Data Migration Software</a> or various forms of AOMEI Partition Assistant. I never trusted the latter application 100%, to be very honest.</p><p>Also, this time I don&#x27;t have Admin access on the laptop to be migrated. At least not on Windows 10. But the BIOS (UEFI) is unlocked, so we can at least boot a Linux live ISO.</p><h2>Hardware preparation</h2><p>First, we prepare these tools:</p><ul><li>screwdrivers</li><li>an external HDD case</li><li>a bootable Linux live ISO</li><li>a bootable Windows 10 installer</li></ul><p>:::tip
+For the Linux live ISO and the Windows 10 installer, use <a href="https://ventoy.net">Ventoy</a>. Then you can have both on one single USB stick.
+:::</p><p>We remove the existing HDD, and then install the new SSD inside the laptop. This is usually done together with a RAM upgrade, because RAM is relatively cheap nowadays.</p><p>After that, install the old HDD into the external HDD case.</p><h2>Do the migration</h2><ol><li>Boot the laptop into the Linux live ISO.</li><li>Plug the external HDD case into the laptop.</li><li>Use <code>lsblk</code> to help identify the HDD and SSD device nodes.</li><li>Use <code>fdisk -l /dev/sdX</code> to verify the identities of the HDD and SSD device nodes.<ul><li>Let&#x27;s say the HDD is <code>/dev/sdc</code> and the SSD is <code>/dev/sda</code></li></ul></li><li>Copy the partition layout of the HDD and apply it onto the SSD: <code>sfdisk -d /dev/sdc | sfdisk /dev/sda</code></li><li>Open gparted, and copy the original partitions on the HDD onto the SSD. Usually, there will be at least 2 partitions on the original HDD, one for the EFI partition and another one for the Windows partition.</li><li>Still in gparted, resize the Windows partition to fill up all the available space (if needed).</li><li>Reboot into the Windows 10 installer, and then repair the Windows boot manager:<pre><code>bootrec /RebuildBcd
+bootrec /fixMbr
+bootrec /fixboot
+bootsect /nt60 SYS
+</code></pre></li></ol><p>:::note
+Read the <code>sfdisk</code> man page for more options, and also consider backing up all partition tables before doing anything.
+:::</p><h2>What if...?</h2><h3>What if the original Windows partitions don&#x27;t fit on the SSD?</h3><p>Resize your Windows partition before replacing the HDD. Make it as small as possible, and don&#x27;t worry because you can always extend it using gparted later.</p><p>Alternatively, you can try to resize your Windows partition using gparted. Others have had <a href="https://superuser.com/questions/821131/is-it-safe-to-resize-windows-partition-with-gparted">success</a>, but I haven&#x27;t tried it yet.</p><h2>What if I don&#x27;t have a Linux live ISO with a desktop?</h2><p>You can still copy the partitions using <code>dd</code>. Then you can use <code>parted</code> or <code>sfdisk</code> or even <code>fdisk</code> to resize the partition, and <code>ntfsresize</code> to grow the filesystem.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Show Items in Folder]]></title>
+            <link>https://wpyoga.github.io/blog/2022/02/14/show-in-folder</link>
+            <guid>/2022/02/14/show-in-folder</guid>
+            <pubDate>Mon, 14 Feb 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[When we download a file in the browser, there is usually an option to "Show in folder". For the longest time, I've been looking for a way to do replicate this functionality on the command line.]]></description>
+            <content:encoded><![CDATA[<p>When we download a file in the browser, there is usually an option to &quot;Show in folder&quot;. For the longest time, I&#x27;ve been looking for a way to do replicate this functionality on the command line.</p><h2>It&#x27;s not xdg-open</h2><p>We know that we can use <code>xdg-open</code> to open a file from the command line. By &quot;open&quot; I mean call the associated application and have it open the file requested. So I tried to monitor invocations of <code>xdg-open</code> by using the stupidest method there is:</p><pre><code class="language-title=&quot;xdg-open&quot;">#!/bin/sh
+echo &quot;$0&quot; &quot;$@&quot; &gt;&gt;/tmp/xdg-open-invocations.log
+xdg-open-real &quot;$@&quot;
+</code></pre><p>Of course, I&#x27;ve renamed the original <code>xdg-open</code> binary to <code>xdg-open-real</code>.</p><p>But I found nothing, no logs.</p><h2>It&#x27;s related to the file manager</h2><p>I applied the &quot;monitoring&quot; process to Thunar, but I only see a line like this in the log:</p><pre><code>/usr/bin/Thunar --daemon
+</code></pre><p>Something&#x27;s calling <code>Thunar</code> and making it run as a daemon (presumably for faster start-up performance for subsequent calls). But I don&#x27;t see anything related to the file I was viewing. Apparently <code>Thunar</code> doesn&#x27;t have an option to do that, either.</p><h2>Monitoring all process invocations</h2><p>So I googled a bit and found <a href="https://unix.stackexchange.com/questions/260162/how-to-track-newly-created-processes-in-linux">this</a>. The proper solution is:</p><pre><code>$ sudo bpftrace -e &#x27;tracepoint:syscalls:sys_enter_exec*{ printf(&quot;pid: %d, comm: %s, args: &quot;, pid, comm); join(args-&gt;argv); }&#x27;
+</code></pre><p>:::warning
+DO NOT copy solutions blindly from StackOverflow / Google / etc. Understand what it does first, then adapt it or use it accordingly.
+:::</p><p>However, it doesn&#x27;t show any process invocations other than the <code>Thunar --daemon</code> one.</p><h2>Of course it had to be D-Bus</h2><p>Then it dawned on me that this should concern D-Bus. Using <code>dbus-monitor</code>, we can see this:</p><pre><code>method call time=1644810719.430850 sender=:1.640 -&gt; destination=org.freedesktop.FileManager1 serial=12 path=/org/freedesktop/FileManager1; interface=org.freedesktop.FileManager1; member=ShowItems
+   array [
+      string &quot;file:///home/william/Downloads/download.pdf&quot;
+   ]
+   string &quot;&quot;
+</code></pre><p>So I can replay it:</p><pre><code>$ dbus-send --type=method_call --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:&quot;file:///home/william/Downloads/download.pdf&quot; string:&quot;&quot;
+</code></pre><p>And it works! So I created this script to help me:</p><pre><code class="language-title=&quot;bin/show-in-folder&quot;">#!/bin/sh
+
+PATH_ARRAY=
+for x in &quot;$@&quot;; do
+  PATH_ARRAY=&quot;$PATH_ARRAY&quot;,&quot;file://$(pwd)/$x&quot;
+done
+
+dbus-send \
+  --type=method_call \
+  --dest=org.freedesktop.FileManager1 \
+  /org/freedesktop/FileManager1 \
+  org.freedesktop.FileManager1.ShowItems \
+  array:string:&quot;${PATH_ARRAY#,}&quot; \
+  string:&quot;&quot;
+</code></pre>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Libvirt Networking Configuration]]></title>
+            <link>https://wpyoga.github.io/blog/2022/01/27/libvirt-networking</link>
+            <guid>/2022/01/27/libvirt-networking</guid>
+            <pubDate>Thu, 27 Jan 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[If you use a wireless adapter on your VM host, libvirt networking is complicated. We have 3 options:]]></description>
+            <content:encoded><![CDATA[<p>If you use a wireless adapter on your VM host, libvirt networking is complicated. We have 3 options:</p><ul><li>Bridged (with parprouted)</li><li>Routed</li><li>NAT (the default)</li></ul><h2>Bridged</h2><p>In this scenario, the virtual machines appear as &quot;real&quot; nodes in the local network. Using wired connections (Ethernet) it&#x27;s very easy to set up. However, due to <a href="https://superuser.com/a/1009881">the way wireless networks work</a>, bridging becomes a bit more complicated.</p><p>The core issue is: when a wireless client wants to send a packet to another host, it has to send 3 MAC addresses to the AP:</p><ul><li>AP&#x27;s MAC address</li><li>Client&#x27;s MAC address</li><li>Destination MAC address</li></ul><p>Remember that in AP / Managed mode, all communication has to pass through the AP. And each client to the AP needs to fill in its own MAC address as the Source address. If the client sends a MAC address belonging to a hosted virtual machine, that MAC address does not match the authenticated client&#x27;s MAC address, so the AP will reject it.</p><p>To solve this issue, we need to use an arp proxy. The manual way of doing this is using the <code>arp</code> utility. The automatic way is using <code>parprouted</code>. With an ARP proxy in place, the wireless client will send out forwarded packets with the MAC address changed to its authenticated MAC address. When packets come back, the MAC address is still the client&#x27;s MAC address, but the IP address is the VM&#x27;s IP address. The ARP proxy sees the destination IP address, looks it up in a table, and replaces the destination MAC address of the packet to be the destination VM&#x27;s MAC address.</p><h2>Routed</h2><p>Routed is basically NAT, with 2 major differences:</p><ul><li>Incoming connections are allowed and routed to the requested hosts</li><li>Outgoing connections still bear their original IP address</li></ul><p>However, without a static route set up on the gateway, the VM&#x27;s cannot access anything outside the local network. When it tries to do so, the gateway will be unable to return packets -- it doesn&#x27;t know where to send the packets to.</p><p>Setting up static routes on other machines in the local network only enable communication between the nodes and the VM&#x27;s.</p><h2>NAT</h2><p>With this set up:</p><ul><li>Incoming connections are not allowed, unless initiated by a VM. This means nodes in the local network cannot access VM&#x27;s.</li><li>Outgoing connections are masqueraded, so the gateway knows where to send the return packets to. This means the VM&#x27;s can access the local network and everything outside the local network.</li></ul><p>To enable seamless internode communication, we need to:</p><ul><li>Allow incoming connections. This effectively makes the whole NAT subnet be a DMZ.</li><li>Forward connections to nested VM&#x27;s within virtualized NAT networks.</li></ul><p>To allow incoming connections, we need to do two things:</p><ul><li>remove this rule: <code>-A LIBVIRT_FWI -o virbr0 -j REJECT --reject-with icmp-port-unreachable</code></li><li>forward connections:<ul><li>192.168.124.0/24 via 192.168.122.223</li><li>192.168.125.0/24 via 192.168.122.74</li><li>192.168.126.0/24 via 192.168.122.91</li></ul></li></ul><pre><code class="language-xml">&lt;route address=&quot;192.168.124.0&quot; prefix=&quot;24&quot; gateway=&quot;192.168.122.223&quot;/&gt;
+&lt;route address=&quot;192.168.125.0&quot; prefix=&quot;24&quot; gateway=&quot;192.168.122.74&quot;/&gt;
+&lt;route address=&quot;192.168.126.0&quot; prefix=&quot;24&quot; gateway=&quot;192.168.122.91&quot;/&gt;
+</code></pre><p>To enable forwarding, we need to manipulate iptables rules using hooks. Be careful though, when a qemu hook is called, and a non-zero exit status is returned, all domains are destroyed.</p><p>If a hook script is not executable, then a log line will be printed on libvirtd&#x27;s log. But domains can be started and stopped.</p><h2>Open</h2><p>With &quot;Open&quot; mode, no iptables rules are set by default. We would then need to specify our own rules.</p><p>TODO: Propose a &quot;Custom&quot; mode, so that we don&#x27;t need to use hooks</p><h3>Events</h3><p>TODO: propose a multi-level tree of drop-in scripts:
+make a sample implementation using scripts</p><p>/etc/libvirtd/hooks/qemu.d/guest1/prepare/begin
+/etc/libvirtd/hooks/qemu.d/guest1/start/begin
+/etc/libvirtd/hooks/qemu.d/guest1/started/begin
+/etc/libvirtd/hooks/qemu.d/guest1/stopped/end</p><p><a href="https://libvirt.org/hooks.html">https://libvirt.org/hooks.html</a></p><ul><li>virsh net-destroy
+iptables rules for the network are deleted</li></ul><pre><code>/etc/libvirt/hooks/network default stopped end -
+</code></pre><ul><li>virsh net-start
+iptables rules for the network are applied</li></ul><pre><code>/etc/libvirt/hooks/network default start begin -
+/etc/libvirt/hooks/network default started begin -
+</code></pre><ul><li>virsh start</li></ul><pre><code>/etc/libvirt/hooks/qemu ub16 prepare begin -
+/etc/libvirt/hooks/network default port-created begin -
+/etc/libvirt/hooks/qemu ub16 start begin -
+/etc/libvirt/hooks/qemu ub16 started begin -
+</code></pre><p>if a domain is started but its network is not active, the domain will fail to start</p><pre><code>/etc/libvirt/hooks/qemu ub16 prepare begin -
+/etc/libvirt/hooks/qemu ub16 stopped end -
+/etc/libvirt/hooks/qemu ub16 release end -
+</code></pre><ul><li>virsh shutdown / virsh destroy</li></ul><pre><code>/etc/libvirt/hooks/qemu ub16 stopped end -
+/etc/libvirt/hooks/network default port-deleted begin -
+/etc/libvirt/hooks/qemu ub16 release end -
+</code></pre><ul><li>systemctl stop libvirtd
+iptables rules are not touched</li></ul><pre><code>/etc/libvirt/hooks/daemon - shutdown - shutdown
+</code></pre><ul><li>systemctl start libvirtd
+iptables rules for the active networks are applied</li></ul><pre><code>/etc/libvirt/hooks/daemon - start - start
+</code></pre><p>networks marked as &quot;Autostart&quot; are not started
+domains that are running trigger these events</p><pre><code>/etc/libvirt/hooks/network default port-created begin -
+/etc/libvirt/hooks/qemu ovz6 reconnect begin -
+</code></pre><ul><li><p>systemctl restart libvirtd
+same as stop then immediately start</p></li><li><p>systemctl reload libvirtd
+the daemon hook is run before the iptables rules are applied
+iptables rules for the active networks are applied</p></li></ul><pre><code>/etc/libvirt/hooks/daemon - reload begin SIGHUP
+</code></pre><p>if some networks marked as &quot;Autostart&quot; are not active, then those networks are started, and triggers these events:</p><pre><code>/etc/libvirt/hooks/network default start begin -
+/etc/libvirt/hooks/network default started begin -
+</code></pre><p>if libvirtd is running, base libvirt chains are created:</p><pre><code>*mangle
+-A POSTROUTING -j LIBVIRT_PRT
+*nat
+-A POSTROUTING -j LIBVIRT_PRT
+*filter
+-A INPUT -j LIBVIRT_INP
+-A FORWARD -j LIBVIRT_FWX
+-A FORWARD -j LIBVIRT_FWI
+-A FORWARD -j LIBVIRT_FWO
+-A OUTPUT -j LIBVIRT_OUT
+</code></pre>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Installing Proxmox VE on Debian Bullseye]]></title>
+            <link>https://wpyoga.github.io/blog/2022/01/26/installing-proxmox-ve-on-debian-bullseye</link>
+            <guid>/2022/01/26/installing-proxmox-ve-on-debian-bullseye</guid>
+            <pubDate>Wed, 26 Jan 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[I tried to install Proxmox VE 7.1 as a VM using libvirt, but ran into two issues:]]></description>
+            <content:encoded><![CDATA[<p>I tried to install Proxmox VE 7.1 as a VM using libvirt, but ran into two issues:</p><ul><li>The official ISO image cannot be booted as a regular Linux installation ISO, because it does not have Joliet extensions</li><li>The official installer is GUI-based, so we cannot install it over a serial console</li></ul><h2>Background</h2><p>I wanted to learn Proxmox. Since I already have a VM server using libvirt, I figured I should install Proxmox VE as a virtual machine. I&#x27;ve installed OpenVZ 6 and 7 before as virtual machines, so it should be straightforward.</p><p>However, as mentioned above, I ran into two issues. Therefore I will try to install Proxmox on Debian Bullseye instead, following this tutorial: <a href="https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_11_Bullseye">https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_11_Bullseye</a></p><h2>Planning</h2><p>Base OS: Debian 11.2.0
+Network: 192.168.126.0/24</p><h2>Base OS installation</h2><p>First, install Debian 11 as usual. The thing about Debian installers is that the location we choose determines our timezone. Suppose I live in Asia, and I would like my laptop to have the English (US) locale, what should I do?</p><p>Therefore I usually pretend I&#x27;m in the USA, then change the timezone after installation is complete. This is much easier than changing the locale.</p><h2>Proxmox-specific changes</h2><p>After installation, <code>/etc/hosts</code> will look something like this:</p><pre><code>127.0.0.1   localhost
+127.0.1.1   my-hostname
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+</code></pre><p>First, check the ip address of the node. An internal IP address is fine. This can be done using <code>ip addr</code>.</p><p>Remove the line <code>127.0.1.1	my-hostname</code> and replace it with the reachable IP address:</p><pre><code>192.168.122.91  my-hostname
+</code></pre><p>Note to self: submit a correction or register an account: <a href="https://forum.proxmox.com/threads/how-can-we-contribute-to-the-wiki.93970/">https://forum.proxmox.com/threads/how-can-we-contribute-to-the-wiki.93970/</a></p><h2>Reboot</h2><p>Now we shut down the VM, and enable nested virtualization for the libvirt domain: <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_virtualization/creating-nested-virtual-machines_configuring-and-managing-virtualization">https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_virtualization/creating-nested-virtual-machines_configuring-and-managing-virtualization</a></p><p>Then start the domain again, which will boot into the Proxmox kernel.</p><h2>Create a non-root user</h2><pre><code class="language-shell-session">$ sudo pveum useradd william@pve
+$ sudo pveum passwd william@pve
+</code></pre><p>Note that <code>pve</code> is the realm. This is not the node&#x27;s hostname.</p><p>Also create a group for the user:</p><pre><code class="language-shell-session">$ sudo pveum group add admin
+$ sudo pveum user modify william@pve -append -groups admin
+</code></pre><p>Then grant permissions to the group:</p><pre><code class="language-shell-session">$ sudo pveum acl modify / --roles Administrator --groups admin
+</code></pre><h2>Web GUI</h2><p>Open <a href="https://192.168.122.91:8006/">https://192.168.122.91:8006/</a> in a browser. Note that this is only accessible via HTTPS. Plain HTTP won&#x27;t work.</p><p>Note to self: try to configure a redirect here (HTTP -&gt; HTTPS)</p><h2>Run Proxmox without a subscription</h2><p>Remove <code>/etc/apt/sources.list.d/pve-enterprise.list</code></p><p>Note to self: try to figure out how to remove this automatically.</p><h2>Create a network bridge</h2><p>Since my home server is connected to the router via Wi-Fi, let&#x27;s create a bridge for a routed network.
+<a href="https://192.168.122.91:8006/pve-docs/chapter-sysadmin.html#_routed_configuration">https://192.168.122.91:8006/pve-docs/chapter-sysadmin.html#_routed_configuration</a></p><p>The bridge should get an IP address of .1 in a new subnet, and there should be no interface added to it.
+In my example, the CIDR is 192.168.126.1/24.</p><h2>Physical host network</h2><p>on the physical host</p><pre><code class="language-shell-session">$ sudo ip route add 192.168.126.0/24 via 192.168.122.91
+</code></pre><p>or:</p><pre><code class="language-shell-session">$ virsh net-edit default &amp;&amp; virsh net-destroy default &amp;&amp; virsh net-start default &amp;&amp; sudo systemctl restart libvirtd
+</code></pre><pre><code class="language-xml">&lt;network&gt;
+  ...
+  &lt;route family=&#x27;ipv4&#x27; address=&#x27;192.168.126.0&#x27; prefix=&#x27;24&#x27; gateway=&#x27;192.168.122.91&#x27;/&gt;
+&lt;/network&gt;
+</code></pre><pre><code>$ sudo iptables -I FORWARD -s 192.168.126.0/24 -i virbr0 -j ACCEPT
+$ sudo iptables -I FORWARD -d 192.168.126.0/24 -o virbr0 -j ACCEPT
+$ sudo iptables -t nat -A POSTROUTING -s 192.168.126.0/24 ! -d 192.168.126.0/24 -j MASQUERADE
+</code></pre><p>install iptables-persistent
+then create /etc/iptables/rules.v4</p><pre><code>*filter
+-A FORWARD -d 192.168.126.0/24 -o virbr0 -j ACCEPT
+-A FORWARD -s 192.168.126.0/24 -i virbr0 -j ACCEPT
+
+*nat
+-A POSTROUTING -s 192.168.126.0/24 ! -d 192.168.126.0/24 -j MASQUERADE
+</code></pre><h2>Install dnsmasq to provide DHCP server</h2><p>From: <a href="https://bobcares.com/blog/dnsmasq-dhcp-server-in-proxmox/">https://bobcares.com/blog/dnsmasq-dhcp-server-in-proxmox/</a></p><pre><code>$ sudo apt install dnsmasq
+</code></pre><p>Configure it:</p><pre><code class="language-title=/etc/dnsmasq.conf">domain-needed
+bogus-priv
+interface=vmbr0
+dhcp-range=192.168.126.2,192.168.126.254,12h
+</code></pre><p>Then restart the dnsmasq service.</p><h2>Use systemd-resolved to provide DHCP server</h2><p><a href="https://www.freedesktop.org/software/systemd/man/systemd.network.html">https://www.freedesktop.org/software/systemd/man/systemd.network.html</a></p><p>Create a file <code>/etc/systemd/network/proxmox.network</code>:</p><pre><code class="language-ini">[Match]
+Name=vmbr*
+Driver=bridge
+
+[Network]
+Address=192.168.126.1/24
+DHCPServer=yes
+IPMasquerade=yes
+
+[DHCPServer]
+DNS=8.8.8.8
+</code></pre><p>This will enable IP forwarding etc.</p><h2>Creating a VM</h2><p>Put ISO files in <code>/var/lib/vz/template/iso</code></p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Vaccination Certificate Download Via PeduliLindungi]]></title>
+            <link>https://wpyoga.github.io/blog/2022/01/24/vaccine-certrificate</link>
+            <guid>/2022/01/24/vaccine-certrificate</guid>
+            <pubDate>Mon, 24 Jan 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[Today I needed my Vaccination certificates in order to apply for my third shot. It was not as straightforward as it seemed.]]></description>
+            <content:encoded><![CDATA[<p>Today I needed my Vaccination certificates in order to apply for my third shot. It was not as straightforward as it seemed.</p><p>If you live in Indonesia, you probably have a PeduliLindungi account, and have the app installed on your phone. It works for downloading the certificates, but I had to rummage through my phone storage in order to access it.</p><h2>First attempt using PeduliLindungi</h2><p>I opened my PeduliLindungi app, and proceeded to download both vaccine certificates. The downloads immediately succeeded, and I was left wondering: how do I access those downloaded files, and where are they stored on my phone?</p><p>I did not think to open my Gallery app, and it&#x27;s not something I like to do, just because it&#x27;s very slow. Also, the vaccine certificate may very well have been in PDF format, right? I mean, it&#x27;s not like the government doesn&#x27;t know that sending pictures over WhatsApp (a very common use case) degrades its quality, right? They are <em>competent</em>, right?</p><p>So anyway, I googled for the download location, but instead found links explaining how to download the vaccine certificates without the PeduliLindungi app. Wow, this is great, or so I thought.</p><h2>Second attempt using WhatsApp</h2><p>Following the instructions, I messaged <a href="https://wa.me/6281110500567">+6281110500567</a> and was greeted with a menu, as described.</p><p>So I chose to download my vaccination certificates using the menu, as instructed.</p><p>After completing the OTP and ID verification process, it gave me two options: download vaccine certificate 1 or 2.</p><p>So I selected <code>1</code> and it says:</p><blockquote><p>Berikut sertifikat dari <em>NAME_REDACTED</em></p><p>Ada lagi yang bisa dibantu?</p></blockquote><p>What basically happened was that I completed the whole process, and they promised to send me my vaccine certificate, but I didn&#x27;t actually get any.</p><p>I tried downloading the second vaccine certificate, same results. Not sure if the government is playing a prank on us, or secretly trying to diagnose for insanity among its population.</p><p>:::tip
+&quot;The definition of insanity is doing the same thing over and over again and expecting different results.&quot;
+:::</p><h2>Finding the vaccine certificate on my phone</h2><p>So I opened my trusty Total Commander once again and began looking for the downloaded vaccine certificates, one by one. Finally found it here: <code>sdcard:Pictures/Vaccine-Certificate</code></p><p>Great, the vaccine certificates are right there, in JPEG form. I&#x27;m trying to be positive and think that our government is reducing our mobile data burden by serving us JPEG files instead of PNG. Think about all those kids with almost no money hooked on playing mobile games on their phones, with no mobile data quota to spare to download a vaccine certificate. I must applaud the government for setting its priorities straight.</p><h2>But wait, there&#x27;s more!</h2><p>It turns out I also needed to download my third vaccine ticket. It&#x27;s conveniently missing from the PeduliLindungi app&#x27;s landing page, and I have to instead open my Account settings, then click on <code>Vaccination History and Tickets</code> to get it.</p><p>These folks sure know how to test our patience and intellect!</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[When My Server's Wi-Fi Got Disconnected]]></title>
+            <link>https://wpyoga.github.io/blog/2022/01/22/server-wifi-disconnected</link>
+            <guid>/2022/01/22/server-wifi-disconnected</guid>
+            <pubDate>Sat, 22 Jan 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[A few days ago, I just installed an NVMe SSD on my home server. Then I went on a quick trip, and found out that I couldn't access my server anymore. I had thought to myself, could it be that the SSD was bad? (I bought it used, but barely)]]></description>
+            <content:encoded><![CDATA[<p>A few days ago, I just installed an NVMe SSD on my home server. Then I went on a quick trip, and found out that I couldn&#x27;t access my server anymore. I had thought to myself, could it be that the SSD was bad? (I bought it used, but barely)</p><p>It turns out that the default NetworkManager settings are not suitable for my use-case, as described by <a href="https://community.home-assistant.io/t/wifi-does-not-reconnect-if-router-was-gone/247532/5">this forum post</a>:</p><blockquote><p>The <a href="https://developer.gnome.org/NetworkManager/stable/settings-connection.html">nmcli docs</a> state:</p><blockquote><p>The number of times a connection should be tried when autoactivating before giving up. Zero means forever, -1 means the global default (4 times if not overridden).</p></blockquote><p>Four? Why four? Why not 42? What kind of default is that supposed to be?
+Kind of “Please try, but not that hard.” 🙂</p></blockquote><p>Before you say anything, yes I use a Wi-Fi adapter for my home server. It&#x27;s just an educational server running a few VM&#x27;s, so Wi-Fi makes sense here. Running a cable between the server and the router would have complicated the installation.</p><h2>Initial discovery</h2><p>I was in my hotel room, checking up on my home server, when I found that it cannot be accessed. Note that I live in a third-world country, where IP addresses are not given out to home broadband subscribers anymore, so I have to rely on a reverse proxy or VPN to access my home network.</p><p>I checked my reverse proxy, the proxy server is up and running. When I checked my VPN, it shows that my home server had disconnected the previous night. I had indeed installed an NVMe SSD the previous night, and I thought the SSD might have been corrupted (I&#x27;m running a few VM&#x27;s on it), or maybe the PCIe adapter was broken (no more space for an additional NVMe SSD on the motherboard).</p><p>Another possibility that came to mind was, one or more VM&#x27;s used up all the memory, and the VPN client died due to an OOM condition. Not sure if this is possible in reality. Or, maybe the Wi-Fi adapter (it&#x27;s a cheap USB adapter)</p><p>Anyway, I didn&#x27;t think much about it, and waited until I could get home to diagnose the issue.</p><h2>Back home</h2><p>As soon as I got back home, I checked the server and saw that it&#x27;s still powered on. I tried pinging the server and got no response. I tried unplugging and plugging the Wi-Fi adapter, and the server was back online after the second try. It was then that I remembered, I had unplugged the Wi-Fi access point right around the time the VPN client was disconnected.</p><h2>Figuring out the issue</h2><p>I was hoping for some Wi-Fi driver crash to explain the issue, but found nothing in dmesg. Then I looked at NetworkManager logs and found this:</p><pre><code>Jan 20 21:46:48 wmpc NetworkManager[734]: &lt;info&gt;  [1642690008.5546] manager: NetworkManager state is now CONNECTED_SITE
+Jan 20 21:46:50 wmpc NetworkManager[734]: &lt;info&gt;  [1642690010.0196] manager: NetworkManager state is now CONNECTED_GLOBAL
+Jan 20 21:57:00 wmpc NetworkManager[734]: &lt;warn&gt;  [1642690620.4089] sup-iface[0x55b52f610120,wlxf428531ddf06]: connection disconnected (reason -4)
+Jan 20 21:57:00 wmpc NetworkManager[734]: &lt;info&gt;  [1642690620.4278] device (wlxf428531ddf06): supplicant interface state: completed -&gt; disconnected
+Jan 20 21:57:00 wmpc NetworkManager[734]: &lt;info&gt;  [1642690620.5123] device (wlxf428531ddf06): supplicant interface state: disconnected -&gt; scanning
+Jan 20 21:57:15 wmpc NetworkManager[734]: &lt;warn&gt;  [1642690635.5544] device (wlxf428531ddf06): link timed out.
+Jan 20 21:57:15 wmpc NetworkManager[734]: &lt;info&gt;  [1642690635.5555] device (wlxf428531ddf06): state change: activated -&gt; failed (reason &#x27;ssid-not-found&#x27;, sys-iface-state: &#x27;managed&#x27;)
+Jan 20 21:57:15 wmpc NetworkManager[734]: &lt;warn&gt;  [1642690635.5590] device (wlxf428531ddf06): Activation: failed for connection &#x27;mywifi&#x27;
+Jan 20 21:57:15 wmpc NetworkManager[734]: &lt;info&gt;  [1642690635.5604] device (wlxf428531ddf06): state change: failed -&gt; disconnected (reason &#x27;none&#x27;, sys-iface-state: &#x27;managed&#x27;)
+Jan 20 21:57:15 wmpc NetworkManager[734]: &lt;info&gt;  [1642690635.5837] manager: NetworkManager state is now CONNECTED_LOCAL
+Jan 20 21:57:20 wmpc NetworkManager[734]: &lt;info&gt;  [1642690640.1888] device (wlxf428531ddf06): supplicant interface state: scanning -&gt; inactive
+</code></pre><p>The link timed out at around 10 PM on Thursday, and it didn&#x27;t reconnect.</p><p>After some googling, I found out the reason here: <a href="https://community.home-assistant.io/t/wifi-does-not-reconnect-if-router-was-gone/247532/5">https://community.home-assistant.io/t/wifi-does-not-reconnect-if-router-was-gone/247532/5</a></p><p>When I ran <code>nmcli con show my-network</code>, I saw these lines in the output:</p><pre><code>connection.autoconnect:                 yes
+connection.autoconnect-priority:        0
+connection.autoconnect-retries:         -1 (default)
+</code></pre><h2>The solution</h2><p>So I ran:</p><pre><code class="language-shell-session">$ sudo nmcli con mod my-network connection.autoconnect-retries 0
+</code></pre><p>That command updated the configuration into:</p><pre><code>connection.autoconnect:                 yes
+connection.autoconnect-priority:        0
+connection.autoconnect-retries:         0 (forever)
+</code></pre><p>To confirm that the settings will also be applied after a reboot, I checked <code>/etc/NetworkManager/system-connections/my-network.nmconnection</code>:</p><pre><code class="language-ini">[connection]
+id=mywifi
+uuid=01234567-89ab-cdef-0123-456789abcdef
+type=wifi
+autoconnect-retries=0
+</code></pre><p>With this setting in place, the configuration will survive reboots.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Deciphering Aptitude Search Results]]></title>
+            <link>https://wpyoga.github.io/blog/2022/01/19/deciphering-aptitude-search-results</link>
+            <guid>/2022/01/19/deciphering-aptitude-search-results</guid>
+            <pubDate>Wed, 19 Jan 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[The output of apt search xxx is a little cryptic, and I needed to Google quite a bit before landing on the correct documentation//www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html]]></description>
+            <content:encoded><![CDATA[<p>The output of <code>apt search xxx</code> is a little cryptic, and I needed to Google quite a bit before landing on the correct documentation: <a href="https://www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html">https://www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html</a></p><h2>Background</h2><p>Today, as I was updating my laptop, I got these warnings from <code>apt update</code>:</p><pre><code>W: An error occurred during the signature verification. The repository is not updated and the previous index files will be used. GPG error: http://repo.mysql.com/apt/ubuntu focal InRelease: The following signatures couldn&#x27;t be verified because the public key is not available: NO_PUBKEY 467B942D3A79BD29
+W: An error occurred during the signature verification. The repository is not updated and the previous index files will be used. GPG error: http://deb.anydesk.com all InRelease: The following signatures were invalid: EXPKEYSIG 18DF3741CDFFDE29 philandro Software GmbH &lt;info@philandro.com&gt;
+W: Failed to fetch http://deb.anydesk.com/dists/all/InRelease  The following signatures were invalid: EXPKEYSIG 18DF3741CDFFDE29 philandro Software GmbH &lt;info@philandro.com&gt;
+W: Failed to fetch http://repo.mysql.com/apt/ubuntu/dists/focal/InRelease  The following signatures couldn&#x27;t be verified because the public key is not available: NO_PUBKEY 467B942D3A79BD29
+W: Some index files failed to download. They have been ignored, or old ones used instead.
+</code></pre><p>So I thought to myself, I haven&#x27;t been using Anydesk and MySQL lately, let&#x27;s remove those packages anyway.</p><p>From <a href="https://askubuntu.com/questions/342434/find-what-packages-are-installed-from-a-repository">this SE post</a>, I learned a few commands:</p><pre><code class="language-shell-session">$ apt policy | grep mysql
+ 500 http://repo.mysql.com/apt/ubuntu focal/mysql-tools i386 Packages
+     release o=MySQL,n=focal,l=MySQL,c=mysql-tools,b=i386
+     origin repo.mysql.com
+ 500 http://repo.mysql.com/apt/ubuntu focal/mysql-tools amd64 Packages
+     release o=MySQL,n=focal,l=MySQL,c=mysql-tools,b=amd64
+     origin repo.mysql.com
+ 500 http://repo.mysql.com/apt/ubuntu focal/mysql-8.0 amd64 Packages
+     release o=MySQL,n=focal,l=MySQL,c=mysql-8.0,b=amd64
+     origin repo.mysql.com
+ 500 http://repo.mysql.com/apt/ubuntu focal/mysql-apt-config i386 Packages
+     release o=MySQL,n=focal,l=MySQL,c=mysql-apt-config,b=i386
+     origin repo.mysql.com
+ 500 http://repo.mysql.com/apt/ubuntu focal/mysql-apt-config amd64 Packages
+     release o=MySQL,n=focal,l=MySQL,c=mysql-apt-config,b=amd64
+     origin repo.mysql.com
+</code></pre><p>With <code>o=MySQL</code>, I can see that I need to do:</p><pre><code class="language-shell-session">$ apt search &quot;?origin (MySQL) ?installed&quot;
+i   libmysqlclient21                        - MySQL shared client libraries
+i   mysql-apt-config                        - Auto configuration for MySQL APT Repo.
+i A mysql-client                            - MySQL Client meta package depending on latest vers
+i   mysql-common                            - Common files shared between packages
+i A mysql-community-client                  - MySQL Client
+i A mysql-community-client-core             - MySQL Client Core Binaries
+i A mysql-community-client-plugins          - MySQL Client plugin
+i   mysql-community-server                  - MySQL Server
+i A mysql-community-server-core             - MySQL Server Core Binaires
+i   mysql-workbench-community               - MySQL Workbench
+</code></pre><p>But what do <code>i</code> and <code>A</code> mean?</p><h2>The documentation</h2><p>It&#x27;s not easy to find this piece of information. I had to Google a whlie to finally find this: <a href="https://www.debian.org/doc/manuals/aptitude/rn01re01.en.html">https://www.debian.org/doc/manuals/aptitude/rn01re01.en.html</a></p><p>Under <code>search</code>, it explains thus:</p><blockquote><p>Each search result is listed on a separate line. The first character of each line indicates the current state of the package: the most common states are p, meaning that no trace of the package exists on the system, c, meaning that the package was deleted but its configuration files remain on the system, i, meaning that the package is installed, and v, meaning that the package is virtual. The second character indicates the stored action (if any; otherwise a blank space is displayed) to be performed on the package, with the most common actions being i, meaning that the package will be installed, d, meaning that the package will be deleted, and p, meaning that the package and its configuration files will be removed. If the third character is A, the package was automatically installed.</p></blockquote><p>A more detailed documentation can be found here: <a href="https://www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html">https://www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html</a></p><p>In my case, what I need to know is:</p><ul><li><code>i</code> means the package is installed</li><li><code>A</code> means the package was installed automatically -- this means it&#x27;s a dependency of another package</li></ul><p>Alright, now that we know, and because we don&#x27;t need those packages,we can remove all the installed packages directly, except the ones marked as &quot;automatically installed&quot;. Those packages should be automatically removed anyway:</p><pre><code class="language-shell-session">$ sudo apt purge --autoremove mysql-apt-config mysql-common mysql-community-server mysql-workbench-community
+</code></pre><p>After that, <code>apt search &quot;?origin (MySQL) ?installed&quot;</code> doesn&#x27;t return anything, so the repo should be safe to remove, or so I thought.</p><p>It turns out that removing <code>mysql-apt-config</code> also removes the repo, so that saves me another step.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Installing OpenVZ 6]]></title>
+            <link>https://wpyoga.github.io/blog/2022/01/17/installing-openvz-6</link>
+            <guid>/2022/01/17/installing-openvz-6</guid>
+            <pubDate>Mon, 17 Jan 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[OpenVZ 6 is an obsolete piece of technology. However, I have a small project whereby I upgrade a Ubuntu 16.04 installation to Ubuntu 18.04 and then 20.04 and eventually 22.04, completely disregarding any potential issues and problems that may happen :)]]></description>
+            <content:encoded><![CDATA[<p>OpenVZ 6 is an obsolete piece of technology. However, I have a small project whereby I upgrade a Ubuntu 16.04 installation to Ubuntu 18.04 and then 20.04 and eventually 22.04, completely disregarding any potential issues and problems that may happen :)</p><p>Also, I may be able to research a migration strategy for OpenVZ 6 to KVM. One possible way is to install OpenVZ 6 inside a KVM virtual machine, and then migrating each container as a single container inside the new host.</p><p>The basic process is to install CentOS 6 as the base OS, then install OpenVZ 6 on top of it. After installation, we have to reboot into the newly-installed OpenVZ kernel. This is a modified kernel based off of RHEL 6 / CentOS 6 that provides the containerization features.</p><p>As a bonus, I&#x27;m installing all of this inside a KVM virtual machine.</p><h2>Install CentOS 6</h2><p>TODO: move this to another document &quot;Installing CentOS 6 in 2022&quot;.</p><p>download centos 6:
+<a href="https://vault.centos.org/6.10/isos/x86_64/">https://vault.centos.org/6.10/isos/x86_64/</a>
+<a href="http://ftp.uem.br/linux/CentOS/6.10/isos/x86_64/">http://ftp.uem.br/linux/CentOS/6.10/isos/x86_64/</a>
+<a href="https://mirror.nsc.liu.se/centos-store/6.10/isos/x86_64/">https://mirror.nsc.liu.se/centos-store/6.10/isos/x86_64/</a>
+<a href="http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.10/isos/x86_64/">http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.10/isos/x86_64/</a>
+<a href="https://img.cs.montana.edu/linux/centos/6.10/isos/x86_64/">https://img.cs.montana.edu/linux/centos/6.10/isos/x86_64/</a></p><p>install centos 6
+enable dhcp: <a href="https://www.serverlab.ca/tutorials/linux/administration-linux/configure-centos-6-network-settings/">https://www.serverlab.ca/tutorials/linux/administration-linux/configure-centos-6-network-settings/</a>
+(just change ONBOOT=yes)</p><p>use vault repo (since centos 6 is already EOL)
+<a href="https://www.getpagespeed.com/server-setup/how-to-fix-yum-after-centos-6-went-eol">https://www.getpagespeed.com/server-setup/how-to-fix-yum-after-centos-6-went-eol</a>
+edit /etc/yum.repos.d/CentOS-Base.repo
+remove all mirrorlist= lines
+uncomment all baseurl= lines, change the domain to vault.centos.org</p><pre><code>$ sudo sed -i /etc/yum.repos.d/CentOS-Base.repo -e &#x27;/^mirrorlist=/d&#x27; -e &#x27;s,^#baseurl=http://mirror.centos.org/,baseurl=https://vault.centos.org/,&#x27;
+</code></pre><p>yum update</p><p>make a new user</p><pre><code># useradd william -G adm
+</code></pre><p>change hostname</p><pre><code>$ sudo hostname cos6
+$ vi /etc/sysconfig/network
+HOSTNAME=cos6
+</code></pre><p>enable sudo
+$ visudo william
+add the line
+william ALL=(ALL)   NOPASSWD:ALL</p><p>enable ssh
+$ mkdir /home/william/.ssh
+$ vi /home/william/.ssh/authorized_keys
+$ chmod 700 /home/william/.ssh
+$ chown -R william: /home/william
+$ ls -la /home/william/.ssh</p><p>install &amp; enable acpid, so that the VM can be shut down gracefully by libvirt / proxmox</p><pre><code>$ sudo yum install acpid
+$ sudo service acpid start
+$ sudo service acpid status
+</code></pre><h2>Install OpenVZ 6</h2><p>then follow the instructions here:
+<a href="https://wiki.openvz.org/Quick_Installation_CentOS_6">https://wiki.openvz.org/Quick_Installation_CentOS_6</a></p><p>$ sudo curl <a href="http://download.openvz.org/openvz.repo">http://download.openvz.org/openvz.repo</a> -o/etc/yum.repos.d/openvz.repo
+$ sudo rpm --import <a href="http://download.openvz.org/RPM-GPG-Key-OpenVZ">http://download.openvz.org/RPM-GPG-Key-OpenVZ</a>
+$ yum install vzkernel vzctl vzquota</p><h1>disable disk quota system</h1><p>/etc/vz/vz.conf
+DISK_QUOTA=no</p><h1>you can install ploop, but it is not recommended</h1><p>/etc/vz/vz.conf
+VE_LAYOUT=simfs</p><p>make sure vzkernel is the default boot option
+$ sudo vi /boot/grub/menu.lst</p><p>enable ip forwarding etc
+$ sudo vi /etc/sysctl.conf
+net.ipv4.ip_forward = 1
+net.ipv4.conf.default.proxy_arp = 0
+net.ipv4.conf.all.rp_filter = 1
+#kernel.sysrq = 1
+net.ipv4.conf.default.send_redirects = 1
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.icmp_echo_ignore_broadcasts=1
+net.ipv4.conf.default.forwarding=1</p><h3>If using veth</h3><p>for VETH: create a bridge &amp; configure vznet script
+$ sudo vi /etc/sysconfig/network-scripts/ifcfg-vmbr0
+DEVICE=&quot;vmbr0&quot;
+BOOTPROTO=&quot;static&quot;
+IPV6INIT=&quot;no&quot;
+ONBOOT=&quot;yes&quot;
+TYPE=&quot;Bridge&quot;
+DELAY=0
+IPADDR=192.168.124.99
+NETMASK=255.255.255.0
+GATEWAY=192.168.124.1
+$ sudo vi /etc/sysconfig/network-scripts/ifcfg-eth0
+DEVICE=eth0
+TYPE=Ethernet
+ONBOOT=yes
+IPV6INIT=no
+BRIDGE=vmbr0
+$ sudo vi /etc/vz/vznet.conf
+EXTERNAL_SCRIPT=/usr/sbin/vznetaddbr</p><h3>Create a container</h3><p>create container
+$ sudo vzctl create 101 --ostemplate ubuntu-16.04-x86_64 --layout simfs --hostname server101 --ipadd 192.168.124.101 --diskspace 8G
+$ sudo vzctl set 101 --save --onboot yes --nameserver 8.8.8.8 --cpus 1 --ram 1G</p><h1>use --name server101 ???</h1><p>note: if using ploop, sometimes container can run out of disk space, especially when there is lots of writing and erasing. to solve this: ploop discard -d /dev/ploopXXXXX / or / vzctl compact 101
+it&#x27;s much simpler to just use simfs though</p><p>configure venet: <a href="https://wiki.openvz.org/Virtual_network_device">https://wiki.openvz.org/Virtual_network_device</a></p><p>$ sudo vzctl start 101</p><h1>ubuntu 16.04 template</h1><h1>ubuntu useradd needs extra options</h1><p>$ sudo vzctl exec 101 useradd -m -s /bin/bash william
+$ sudo vzctl exec 101 usermod -a -G systemd-journal william
+$ sudo vzctl exec 101 mkdir /home/william/.ssh
+$ sudo vi /vz/root/101/home/william/.ssh/authorized_keys
+$ sudo vzctl exec 101 chmod 700 /home/william/.ssh
+$ sudo vzctl exec 101 chown -R william: /home/william
+$ sudo vzctl exec 101 ls -la /home/william/.ssh</p><p>$ sudo vi /vz/root/101/etc/sudoers
+william ALL=(ALL:ALL) NOPASSWD: ALL</p><p>login to the node, then
+$ sudo dpkg-reconfigure locales
+select en_US.UTF-8 to generate
+and select en_US.UTF-8 as the system default locale</p><hr/><p>to list all containers: vzlist --all</p><hr/><h3>Configure networking</h3><p>on the openvz host
+$ sudo iptables -D FORWARD -j REJECT --reject-with icmp-host-prohibited</p><p>/etc/sysconfig/iptables
+remove the line:</p><pre><code>-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+</code></pre><p>on the physical host</p><pre><code>$ sudo ip route add 192.168.124.0/24 via 192.168.122.223
+</code></pre><p>or:</p><p>$ virsh net-edit default &amp;&amp; virsh net-destroy default &amp;&amp; virsh net-start default &amp;&amp; sudo systemctl restart libvirtd</p><pre><code class="language-xml">&lt;network&gt;
+  ...
+  &lt;route family=&#x27;ipv4&#x27; address=&#x27;192.168.124.0&#x27; prefix=&#x27;24&#x27; gateway=&#x27;192.168.122.223&#x27;/&gt;
+&lt;/network&gt;
+</code></pre><h1>on the physical host: copy libvirt rules</h1><h1>the last rule is actually the most important one</h1><p>sudo iptables -D LIBVIRT_FWI -o virbr0 -j REJECT --reject-with icmp-port-unreachable
+sudo iptables -I FORWARD -s 192.168.124.0/24 -i virbr0 -j ACCEPT
+sudo iptables -I FORWARD -d 192.168.124.0/24 -o virbr0 -j ACCEPT
+sudo iptables -t nat -A POSTROUTING -s 192.168.124.0/24 ! -d 192.168.124.0/24 -j MASQUERADE</p><p>install iptables-persistent
+then create /etc/iptables/rules.v4</p><pre><code>*filter
+-A FORWARD -d 192.168.124.0/24 -o virbr0 -j ACCEPT
+-A FORWARD -s 192.168.124.0/24 -i virbr0 -j ACCEPT
+COMMIT
+
+*nat
+-A POSTROUTING -s 192.168.124.0/24 ! -d 192.168.124.0/24 -j MASQUERADE
+COMMIT
+</code></pre><p>don&#x27;t save the libvirt and wireguard rules to that file, those rules will be recreated when the corresponding services are started</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Enabling IPv6 on Oracle Cloud Instance]]></title>
+            <link>https://wpyoga.github.io/blog/2021/10/30/oracle-cloud-instance-ipv6</link>
+            <guid>/2021/10/30/oracle-cloud-instance-ipv6</guid>
+            <pubDate>Sat, 30 Oct 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[I have a couple of always-free compute instances on Oracle Cloud. By default, each instance gets an IPv4 address, and IPv6 is not enabled.]]></description>
+            <content:encoded><![CDATA[<p>I have a couple of always-free compute instances on Oracle Cloud. By default, each instance gets an IPv4 address, and IPv6 is not enabled.</p><p>I tried enabling IPv6 using <a href="https://blog.51sec.org/2021/09/enable-ipv6-on-oracle-cloud.html">instructions I found on the Internet</a>, but:</p><ul><li>it doesn&#x27;t work for my Oracle Linux 8.4 instance</li><li>even if it did, we have to manually obtain the IPv6 address using <code>/etc/rc.local</code> -- this doesn&#x27;t seem to be the best practice, especially since this is a systemd distro</li></ul><p>Hey, I&#x27;m all for simplicity and I love SysV init scripts, but if the distro is a systemd distro, then I&#x27;ll use systemd.
+Just like the reason why I have an Oracle Linux instance on Oracle Cloud -- it&#x27;s supposed to be the best-supported OS on their cloud.
+Yes, it&#x27;s just another clone of RHEL, but I thought it would somehow be better tuned for Oracle Cloud environment...</p><p>Anyway, I do have a Ubuntu instance on Oracle Cloud, and it&#x27;s much easier to set up and figure out as you can see below.</p><h2>Enable and assign IPv6 to the instance</h2><p>This is done from on the cloud infrastructure, and can be easily done using the <a href="https://cloud.oracle.com/">Cloud Console</a>. These instructions are taken from <a href="https://blog.51sec.org/2021/09/enable-ipv6-on-oracle-cloud.html">the aforementioned article</a>.</p><p>Once logged in to the Cloud Console, open the instance to be configured and perform the following actions:</p><ol><li><p>Configure VCN:</p><ol><li><p>CIDR Blocks: add an IPv6 CIDR block</p></li><li><p>Subnets: Edit -&gt; enable the CIDR block</p></li></ol></li><li><p>Configure Security List:</p><ul><li><p>Ingress Rules: add IPv6-ICMP type 128 to allow incoming ping (from <code>::/0</code>)</p></li><li><p>Egress Rules: allow traffic of all protocols to all destinations (<code>::/0</code>)</p></li></ul></li><li><p>Configure Route Table: Route Rules -&gt; add IPv6 route rule to <code>::/0</code> targeting the default Internet Gateway</p></li><li><p>Configure VNIC: IPv6 Addresses -&gt; assign an IPv6 address</p></li></ol><p>At this point, an IPv6 address has been assigned to the instance, and the network has been set up properly.</p><p>If you add new instances into the same VCN, then you would only need to assign a new IPv6 address to the VNIC, no need to reconfigure the other resources (CIDR Blocks, subnets, security lists, route table).</p><h2>Obtain the IPv6 address from the instance</h2><p>Next, obtain the IPv6 address from within the instance itself.</p><h3>Oracle Linux 7.9</h3><p><code>dhcpv6-client</code> service is already enabled by default.</p><p>Create a new file <code>/etc/cloud/cloud.cfg.d/99_ipv6.cfg</code>:</p><pre><code class="language-yaml">network:
+  version: 2
+  ethernets:
+    enp0s3:
+      dhcp: true
+      dhcp6: true
+</code></pre><p>TODO: somehow my Ampere instance doesn&#x27;t work yet</p><h3>Oracle Linux 8</h3><p>SSH into the instance, and <a href="https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/ipv6.htm#os_config">add DHCPv6 service</a> to the firewall:</p><pre><code class="language-shell-session">$ sudo firewall-cmd --add-service=dhcpv6-client
+</code></pre><p>Check that the firewall setting have been applied properly:</p><pre><code class="language-shell-session">$ sudo firewall-cmd --list-all
+</code></pre><p>Tell NetworkManager to obtain the IPv6 address:</p><pre><code class="language-shell-session">$ sudo systemctl restart NetworkManager
+</code></pre><p>Wait a few seconds, and then check to see that the IPv6 address has been obtained successfully.
+We need to wait a few seconds because dhclient needs some time to obtain and then apply the IPv6 address.</p><pre><code class="language-shell-session">$ ip add
+</code></pre><p>If all is well, make the firewall rule permanent:</p><pre><code class="language-shell-session">$ sudo firewall-cmd --add-service=dhcpv6-client --permanent
+</code></pre><p>I actually wasted a few hours trying to find this information.
+It turns out DHCP was blocked by default and we need to allow it.
+Not sure why most people recommend setting the IPv6 statically...</p><p>Moral of the story: read the official documentation!</p><h3>Ubuntu</h3><p>SSH into the instance, and reload the network configuration:</p><pre><code class="language-shell-session">$ sudo systemctl restart systemd-networkd
+</code></pre><p>That&#x27;s it. It&#x27;s much simpler isn&#x27;t it? :)</p><p>P.S. on my Ampere instance, the IPv6 is applied almost as soon as I configured it.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Using DNF on an IPv6-only host]]></title>
+            <link>https://wpyoga.github.io/blog/2021/10/26/dnf-ipv6</link>
+            <guid>/2021/10/26/dnf-ipv6</guid>
+            <pubDate>Tue, 26 Oct 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[I created a Stardust instance on ScaleWay, and used IPv6 exclusively (didn't use IPv4, much cheaper this way).]]></description>
+            <content:encoded><![CDATA[<p>I created a Stardust instance on ScaleWay, and used IPv6 exclusively (didn&#x27;t use IPv4, much cheaper this way).</p><p>The issue is, <code>dnf</code> would often not work. After using <code>-d 3</code> to figure out where it stalls, it became clear that <code>dnf</code> was resolving the mirror domain names to IPv4, and then failing to connect to them because we don&#x27;t have IPv4.</p><p>The solution is to edit <code>/etc/dnf/dnf.conf</code> and add this line:</p><pre><code class="language-conf">ip_resolve=6
+</code></pre><p>For other options, read the man page of <code>dnf.conf</code>.</p><p>There was some effort to enable a drop-in configuration diretory <code>/etc/dnf/conf.d</code>, but the patch never got merged.</p><ul><li>bugzilla: <a href="https://bugzilla.redhat.com/show_bug.cgi?id=1352234">https://bugzilla.redhat.com/show_bug.cgi?id=1352234</a></li><li>pull request: <a href="https://github.com/rpm-software-management/dnf/pull/887">https://github.com/rpm-software-management/dnf/pull/887</a></li></ul><p>Anyway, after reconfiguring DNF to resolve domain names to IPv6 only, it works fine.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Vue.js Component vs HTML Tag Names]]></title>
+            <link>https://wpyoga.github.io/blog/2021/10/15/vue-component-tag-name</link>
+            <guid>/2021/10/15/vue-component-tag-name</guid>
+            <pubDate>Fri, 15 Oct 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[So, here's a snippet taken from a Vue.js project:]]></description>
+            <content:encoded><![CDATA[<p>So, here&#x27;s a snippet taken from a Vue.js project:</p><pre><code class="language-js">export default {
+    name: &#x27;Room&#x27;,
+    components: {
+        InfiniteLoading,
+        Loader,
+        SvgIcon,
+        ...
+</code></pre><p>But we don&#x27;t see <code>SvgIcon</code> anywhere in the HTML template. We see this instead:</p><pre><code class="language-html">    &lt;svg-icon name=&quot;emoji&quot; :param=&quot;emojiReaction ? &#x27;reaction&#x27; : &#x27;&#x27;&quot; /&gt;
+</code></pre><p>How does <code>SvgIcon</code> become <code>svg-icon</code>? By magic, it <a href="https://vuejs.org/v2/guide/components-registration.html#Name-Casing">seems</a>.</p><p>Oh, how I love C and its (almost) no-surprises syntax!</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Fast Loading for `nvm` and SDKMAN!]]></title>
+            <link>https://wpyoga.github.io/blog/2021/07/21/nvm-sdkman-fast-loading</link>
+            <guid>/2021/07/21/nvm-sdkman-fast-loading</guid>
+            <pubDate>Wed, 21 Jul 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[Some time ago I was trying to make bash start faster. There, I described a solution to load nvm and SDKMAN! faster. However, that solution has a few issues.]]></description>
+            <content:encoded><![CDATA[<p>Some time ago I was trying to <a href="/blog/2021/07/10/bashrc-directory#self-cleaning-implementation">make bash start faster</a>. There, I described a solution to load <code>nvm</code> and SDKMAN! faster. However, that solution has a few issues.</p><ul><li>we always need to call one of <code>nvm</code>, <code>node</code>, or <code>npm</code> before we can call any other node.js-related command</li><li>we can avoid the previous problem by manually adding them to <code>50-nvm.bashrc</code>, but this is error-prone and cumbersome</li><li>when we add a new utility, we need to manually add them to the list, and to every function there</li><li>if we switch the default node.js version, then we need to re-evaluate the whole script. for example, our node.js 12 installation has <code>yarn</code> installed, but our node.js 14 installation doesn&#x27;t have it installed. we would then need to remove <code>yarn</code> from the bashrc script</li></ul><p>To solve this, we need something that:</p><ul><li>can automatically find the currently-used node version</li><li>can autogenerate the list and the functions, according to which utilities are installed</li></ul><h2>The solution</h2><p>After some thinking and experimentation, I have come up with a new solution:</p><pre><code class="language-shell" metastring="title=&quot;.bashrc.d/50-nvm.bashrc&quot;" title="&quot;.bashrc.d/50-nvm.bashrc&quot;">_DEFAULT=
+# read the first line only
+[ -s &quot;${HOME}/.nvm/alias/default&quot; ] &amp;&amp; read -r _DEFAULT &lt;&quot;${HOME}/.nvm/alias/default&quot;
+
+if [ -n &quot;${_DEFAULT}&quot; ]; then
+  # this will simplify the checks below
+  _DEFAULT=${_DEFAULT#v}
+  _DEFAULT=${_DEFAULT%.}
+
+  if [ -d &quot;${HOME}/.nvm/versions/node/v${_DEFAULT}/bin&quot; ]; then
+    _DEFAULT_DIR=&quot;${HOME}/.nvm/versions/node/v${_DEFAULT}/bin&quot;
+  elif [ -d &quot;${HOME}/.nvm/versions/node/v${_DEFAULT}&quot;.*/bin ]; then
+    _DEFAULT_DIR=&quot;$(echo &quot;${HOME}/.nvm/versions/node/v${_DEFAULT}&quot;.*/bin)&quot;
+  else
+    _DEFAULT_DIR=
+  fi
+
+  _NVM_BIN_LIST=
+  if [ -n &quot;${_DEFAULT_DIR}&quot; ]; then
+    for _EXEC in &quot;${_DEFAULT_DIR}&quot;/*; do
+      if [ -x &quot;${_EXEC}&quot; ]; then
+        _CMD=&quot;${_EXEC##*/}&quot;
+        eval &quot;${_CMD}&quot;&#x27;() { _nvm_load; &#x27;&quot;${_CMD}&quot;&#x27; &quot;$@&quot;; }&#x27;
+        _NVM_BIN_LIST=&quot;${_NVM_BIN_LIST} ${_CMD}&quot;
+      fi
+    done
+  fi
+fi
+
+_CMD=&#x27;nvm&#x27;
+eval &quot;${_CMD}&quot;&#x27;() { _nvm_load; &#x27;&quot;${_CMD}&quot;&#x27; &quot;$@&quot;; }&#x27;
+
+eval &#x27;_nvm_load() {
+  unset -f _nvm_load nvm &#x27;&quot;${_NVM_BIN_LIST}&quot;&#x27;
+  export NVM_DIR=&quot;${HOME}/.nvm&quot;
+  [ -s &quot;${NVM_DIR}/nvm.sh&quot; ] &amp;&amp; . &quot;${NVM_DIR}/nvm.sh&quot;
+  [ -s &quot;${NVM_DIR}/bash_completion&quot; ] &amp;&amp; . &quot;${NVM_DIR}/bash_completion&quot;
+}&#x27;
+
+unset _CMD _NVM_BIN_LIST _EXEC _DEFAULT_DIR _DEFAULT
+</code></pre><p>When the script is sourced in by <code>.bashrc</code>, it will first try to read the default version. This is usually read in as something like <code>12</code> or <code>12.22</code>. With that version information, it tries to find the corresponding nvm directory and list all the executables there. For each executable, a placeholder shell function is created. When we first call the placeholder, it will initialize <code>nvm</code>, after which everything will return to normal.</p><p>This is the environment on my laptop:</p><pre><code class="language-shell-session">william@william-ThinkPad-T450s: ~$ cat .nvm/alias/default
+12
+william@william-ThinkPad-T450s: ~$ ls -l .nvm/versions/node/v12*/bin/*
+-rwxr-xr-x 1 william william 48928552 Apr  6 22:06 .nvm/versions/node/v12.22.1/bin/node
+lrwxrwxrwx 1 william william       42 May 17 13:12 .nvm/versions/node/v12.22.1/bin/nodemon -&gt; ../lib/node_modules/nodemon/bin/nodemon.js
+lrwxrwxrwx 1 william william       38 Jun 21 01:34 .nvm/versions/node/v12.22.1/bin/npm -&gt; ../lib/node_modules/npm/bin/npm-cli.js
+lrwxrwxrwx 1 william william       38 Jun 21 01:34 .nvm/versions/node/v12.22.1/bin/npx -&gt; ../lib/node_modules/npm/bin/npx-cli.js
+lrwxrwxrwx 1 william william       36 Jun 10 22:51 .nvm/versions/node/v12.22.1/bin/yarn -&gt; ../lib/node_modules/yarn/bin/yarn.js
+lrwxrwxrwx 1 william william       36 Jun 10 22:51 .nvm/versions/node/v12.22.1/bin/yarnpkg -&gt; ../lib/node_modules/yarn/bin/yarn.js
+lrwxrwxrwx 1 william william       33 May 27 20:20 .nvm/versions/node/v12.22.1/bin/yo -&gt; ../lib/node_modules/yo/lib/cli.js
+lrwxrwxrwx 1 william william       46 May 27 20:20 .nvm/versions/node/v12.22.1/bin/yo-complete -&gt; ../lib/node_modules/yo/lib/completion/index.js
+william@william-ThinkPad-T450s: ~$ type _nvm_load nvm node npm yarn
+_nvm_load is a function
+_nvm_load () 
+{ 
+    unset -f _nvm_load nvm node nodemon npm npx yarn yarnpkg yo yo-complete;
+    export NVM_DIR=&quot;${HOME}/.nvm&quot;;
+    [ -s &quot;${NVM_DIR}/nvm.sh&quot; ] &amp;&amp; . &quot;${NVM_DIR}/nvm.sh&quot;;
+    [ -s &quot;${NVM_DIR}/bash_completion&quot; ] &amp;&amp; . &quot;${NVM_DIR}/bash_completion&quot;
+}
+nvm is a function
+nvm () 
+{ 
+    _nvm_load;
+    nvm &quot;$@&quot;
+}
+node is a function
+node () 
+{ 
+    _nvm_load;
+    node &quot;$@&quot;
+}
+npm is a function
+npm () 
+{ 
+    _nvm_load;
+    npm &quot;$@&quot;
+}
+yarn is a function
+yarn () 
+{ 
+    _nvm_load;
+    yarn &quot;$@&quot;
+}
+</code></pre><p>The placeholder function for <code>yo</code> is there, I just didn&#x27;t show it.</p><h2>Loading time</h2><p>Loading time is still fast enough:</p><pre><code class="language-shell-session">$ time . .bashrc.d/50-nvm.bashrc 
+
+real    0m0.002s
+user    0m0.001s
+sys 0m0.001s
+</code></pre><h2>Testing</h2><p>With this loading script, <code>nvm</code> still functions correctly:</p><pre><code class="language-shell-session">$ yarn --version
+1.22.10
+</code></pre><pre><code class="language-shell-session">$ node --version
+v12.22.1
+</code></pre><pre><code class="language-shell-session">$ nvm --version
+0.38.0
+</code></pre><pre><code class="language-shell-session">$ npm --version
+7.18.1
+</code></pre><p>Also, it still respects <code>.nvmrc</code> as described <a href="https://github.com/nvm-sh/nvm#nvmrc">here</a>:</p><pre><code class="language-shell-session">william@william-ThinkPad-T450s: ~$ mkdir test
+william@william-ThinkPad-T450s: ~$ echo 14 &gt;test/.nvmrc
+william@william-ThinkPad-T450s: ~$ mkdir test/foo
+william@william-ThinkPad-T450s: ~$ cd test/foo
+william@william-ThinkPad-T450s: ~/test/foo$ nvm use
+Found &#x27;/home/william/test/.nvmrc&#x27; with version &lt;14&gt;
+Now using node v14.17.1 (npm v7.19.0)
+william@william-ThinkPad-T450s: ~/test/foo$ cd ..
+william@william-ThinkPad-T450s: ~/test$ nvm use
+Found &#x27;/home/william/test/.nvmrc&#x27; with version &lt;14&gt;
+Now using node v14.17.1 (npm v7.19.0)
+william@william-ThinkPad-T450s: ~/test$ cd ..
+william@william-ThinkPad-T450s: ~$ nvm use
+No .nvmrc file found
+Please see `nvm --help` or https://github.com/nvm-sh/nvm#nvmrc for more information.
+</code></pre><h2>Shortcomings</h2><p>Of course, no solution is perfect. Otherwise the <code>nvm</code> developers would have adopted it as their official solution/workaround to the slow loading times of <code>nvm</code>. However, there is currently one way that I can think of, to make this solution fail: install a new utility in another terminal session.</p><p>In this scenario, we first open a terminal window, but don&#x27;t call any <code>nvm</code> or node.js-related command. Let&#x27;s say we don&#x27;t have <code>yarn</code> installed at this point. Then in another terminal window, we install <code>yarn</code>. Now, in the first terminal window, we cannot execute <code>yarn</code> without first calling <code>nvm</code> or any other existing commands.</p><p>The reverse is not a problem. Let&#x27;s say we have <code>yo</code> installed. If we uninstall <code>yo</code> in the other terminal window, when we try to execute it in the first terminal window, it will just fail. This is the exact same behaviour as a vanilla <code>nvm</code> installation.</p><p>Please let me know if you have any other potential pitfalls and shortcomings</p><h2>What about SDKMAN! ?</h2><p>Well, SDKMAN! is a bit simpler than <code>nvm</code>:</p><pre><code class="language-shell" metastring="title=&quot;.bashrc.d/50-sdkman.bashrc&quot;" title="&quot;.bashrc.d/50-sdkman.bashrc&quot;">_SDK_BIN_LIST=
+for _EXEC in &quot;${HOME}/.sdkman/candidates&quot;/*/current/bin/*; do
+  if [ -x &quot;${_EXEC}&quot; ]; then
+    _CMD=&quot;${_EXEC##*/}&quot;
+    eval &quot;${_CMD}&quot;&#x27;() { _sdk_load; &#x27;&quot;${_CMD}&quot;&#x27; &quot;$@&quot;; }&#x27;
+    _SDK_BIN_LIST=&quot;${_SDK_BIN_LIST} ${_CMD}&quot;
+  fi
+done
+
+_CMD=&#x27;sdk&#x27;
+eval &quot;${_CMD}&quot;&#x27;() { _sdk_load; &#x27;&quot;${_CMD}&quot;&#x27; &quot;$@&quot;; }&#x27;
+
+eval &#x27;_sdk_load() {
+  unset -f _sdk_load sdk &#x27;&quot;${_SDK_BIN_LIST}&quot;&#x27;
+  export SDKMAN_DIR=&quot;${HOME}/.sdkman&quot;
+  [ -s &quot;${SDKMAN_DIR}/bin/sdkman-init.sh&quot; ] &amp;&amp; . &quot;${SDKMAN_DIR}/bin/sdkman-init.sh&quot;
+}&#x27;
+
+unset _CMD _SDK_BIN_LIST _EXEC
+</code></pre><p>Since SDKMAN! uses a <code>current</code> symlink for each installed candidate, we can just use this. No need to manually figure out the currently-used version.</p><p>The solution for SDKMAN! suffers the same shortcoming as the one for <code>nvm</code>, so please also let me know if you find something wrong with it.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Bash Shell Slow Start-up]]></title>
+            <link>https://wpyoga.github.io/blog/2021/07/11/bash-slow-start</link>
+            <guid>/2021/07/11/bash-slow-start</guid>
+            <pubDate>Sun, 11 Jul 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[As we install development environments in our system, we may notice that terminal start-up can become slow. Some people notice it, some don't -- but the reality is, it's there.]]></description>
+            <content:encoded><![CDATA[<p>As we install development environments in our system, we may notice that terminal start-up can become slow. Some people notice it, some don&#x27;t -- but the reality is, it&#x27;s there.</p><h2>Finding the culprit</h2><p>This initially started when I was <a href="/blog/2021/07/10/bashrc-directory#self-cleaning-implementation">looking at bash start-up time</a>, and that&#x27;s when I noticed that <code>nvm</code> loading was a bit slow.</p><p>Here&#x27;s how I found out, by printing the time taken to execute commands:</p><pre><code class="language-shell">for i in &quot;${HOME}/.bashrc.d&quot;/[0-9][0-9]-*.bashrc; do
+  if [ -r &quot;$i&quot; ]; then
+    export TIMEFORMAT=&quot;%R $i&quot;
+    time . &quot;$i&quot;
+  fi
+done
+unset i
+unset TIMEFORMAT
+</code></pre><p>That gives me this printout when I open a new terminal:</p><pre><code class="language-txt">0.051 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.008 /home/william/.bashrc.d/50-asdf.bashrc
+0.266 /home/william/.bashrc.d/50-nvm.bashrc
+0.037 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+</code></pre><p>There is another thing that I should check:</p><pre><code class="language-shell">export TIMEFORMAT=&#x27;%R bashrc check&#x27;
+time if which mktemp &gt;/dev/null 2&gt;&amp;1; then
+  ...
+</code></pre><p>Which gives me:</p><pre><code class="language-txt">0.019 bashrc check
+</code></pre><p>So, it seems that <code>nvm</code> takes the longest time, followed by the default bashrc and then <code>SDKMAN!</code>.</p><p>The problem with slow loading has been experienced by other people:</p><ul><li><a href="https://github.com/nvm-sh/nvm/issues/1261">https://github.com/nvm-sh/nvm/issues/1261</a></li><li><a href="https://github.com/nvm-sh/nvm/issues/1277">https://github.com/nvm-sh/nvm/issues/1277</a></li></ul><p>Although I&#x27;m lucky to now have experienced such slow loading myself.</p><h2>The solution</h2><p>Just like most good ideas, others have already thought about it:</p><ul><li><a href="https://gist.github.com/rtfpessoa/811701ed8fa642f60e411aef04b2b64a">https://gist.github.com/rtfpessoa/811701ed8fa642f60e411aef04b2b64a</a></li><li><a href="https://armno.in.th/2020/08/24/lazyload-nvm-to-reduce-zsh-startup-time/">https://armno.in.th/2020/08/24/lazyload-nvm-to-reduce-zsh-startup-time/</a></li><li><a href="https://www.ioannispoulakas.com/2020/02/22/how-to-speed-up-shell-load-while-using-nvm/">https://www.ioannispoulakas.com/2020/02/22/how-to-speed-up-shell-load-while-using-nvm/</a></li></ul><p>But <a href="http://broken-by.me/lazy-load-nvm/">this one</a> looks the most promising.</p><p>So I adapted it for my own use:</p><pre><code class="language-shell">nvm() {
+  unset -f nvm node npm
+  export NVM_DIR=&quot;${HOME}/.nvm&quot;
+  [ -s &quot;${NVM_DIR}/nvm.sh&quot; ] &amp;&amp; . &quot;${NVM_DIR}/nvm.sh&quot;
+  [ -s &quot;${NVM_DIR}/bash_completion&quot; ] &amp;&amp; . &quot;${NVM_DIR}/bash_completion&quot;
+  nvm &quot;$@&quot;
+}
+
+node() {
+  unset -f nvm node npm
+  export NVM_DIR=&quot;${HOME}/.nvm&quot;
+  [ -s &quot;${NVM_DIR}/nvm.sh&quot; ] &amp;&amp; . &quot;${NVM_DIR}/nvm.sh&quot;
+  [ -s &quot;${NVM_DIR}/bash_completion&quot; ] &amp;&amp; . &quot;${NVM_DIR}/bash_completion&quot;
+  node &quot;$@&quot;
+}
+
+npm() {
+  unset -f nvm node npm
+  export NVM_DIR=&quot;${HOME}/.nvm&quot;
+  [ -s &quot;${NVM_DIR}/nvm.sh&quot; ] &amp;&amp; . &quot;${NVM_DIR}/nvm.sh&quot;
+  [ -s &quot;${NVM_DIR}/bash_completion&quot; ] &amp;&amp; . &quot;${NVM_DIR}/bash_completion&quot;
+  npm &quot;$@&quot;
+}
+</code></pre><p>Now the timings have improved:</p><pre><code class="language-txt">0.034 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.002 /home/william/.bashrc.d/50-asdf.bashrc
+0.000 /home/william/.bashrc.d/50-nvm.bashrc
+0.039 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+0.018 bashrc check
+</code></pre><h2>A little snag</h2><p>With this setup, <code>yarn</code> cannot be called without calling <code>nvm</code> or <code>node</code> or <code>npm</code> first, because it&#x27;s not in the PATH.</p><p>No solutions for this yet -- maybe we can do some kind of late-loading instead of lazy-loading.</p><p>Or maybe, we can make nvm load faster... somehow?</p><h2>Anything else?</h2><p>Let&#x27;s use the same technique for SDKMAN! as well then:</p><pre><code class="language-shell">sdk() {
+  unset -f sdk
+  export SDKMAN_DIR=&quot;${HOME}/.sdkman&quot;
+  [ -s &quot;${SDKMAN_DIR}/bin/sdkman-init.sh&quot; ] &amp;&amp; . &quot;${SDKMAN_DIR}/bin/sdkman-init.sh&quot;
+  sdk &quot;$@&quot;
+}
+</code></pre><p>With this, we have shaved more time off our start-up:</p><pre><code class="language-txt">0.060 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.004 /home/william/.bashrc.d/50-asdf.bashrc
+0.000 /home/william/.bashrc.d/50-nvm.bashrc
+0.000 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+0.018 bashrc check
+</code></pre><p>Great, now we just have to worry about the default <code>.bashrc</code> and the checking part :)</p><p>But that&#x27;s another matter for another day.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Manual Profiling of Bash Script Execution]]></title>
+            <link>https://wpyoga.github.io/blog/2021/07/11/manual-profiling-bash-script</link>
+            <guid>/2021/07/11/manual-profiling-bash-script</guid>
+            <pubDate>Sun, 11 Jul 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[Sometimes, we would like to know how long a command takes, and which part of the script takes the longest time to run.]]></description>
+            <content:encoded><![CDATA[<p>Sometimes, we would like to know how long a command takes, and which part of the script takes the longest time to run.</p><h2>The method</h2><p>We can use <code>time</code>, which is a special bash keyword. Instead of using a separate <code>/usr/bin/time</code> command, it can be less overhead to use the keyword.</p><p>Following the implementation <a href="/blog/2021/07/10/bashrc-directory#self-cleaning-implementation">here</a>, we add some profiling info to <code>~/.bashrc</code>:</p><pre><code class="language-shell">for i in &quot;${HOME}/.bashrc.d&quot;/[0-9][0-9]-*.bashrc; do
+  if [ -r &quot;$i&quot; ]; then
+    export TIMEFORMAT=&quot;%R $i&quot;
+    time . &quot;$i&quot;
+  fi
+done
+unset i
+</code></pre><p>This showed that <code>nvm</code> makes bash load slowly:</p><pre><code>0.034 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.002 /home/william/.bashrc.d/50-asdf.bashrc
+0.261 /home/william/.bashrc.d/50-nvm.bashrc
+0.036 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+</code></pre><h2>An unforeseen problem</h2><p>So, I began timing its execution:</p><pre><code class="language-shell">nvm_process_parameters() {
+  local NVM_AUTO_MODE
+  NVM_AUTO_MODE=&#x27;use&#x27;
+  while [ $# -ne 0 ]; do
+    case &quot;$1&quot; in
+      --install) NVM_AUTO_MODE=&#x27;install&#x27; ;;
+      --no-use) NVM_AUTO_MODE=&#x27;none&#x27; ;;
+    esac
+    shift
+  done
+  export TIMEFORMAT=&#x27;%R nvm_auto&#x27;
+  time nvm_auto &quot;${NVM_AUTO_MODE}&quot;
+}
+
+nvm_process_parameters &quot;$@&quot;
+</code></pre><p>also:</p><pre><code class="language-shell">nvm_auto() {
+  echo nvm_auto &quot;$@&quot;
+  local NVM_MODE
+  NVM_MODE=&quot;${1-}&quot;
+  local VERSION
+  local NVM_CURRENT
+  if [ &quot;_${NVM_MODE}&quot; = &#x27;_install&#x27; ]; then
+    VERSION=&quot;$(nvm_alias default 2&gt;/dev/null || nvm_echo)&quot;
+    if [ -n &quot;${VERSION}&quot; ]; then
+      nvm install &quot;${VERSION}&quot; &gt;/dev/null
+    elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+      nvm install &gt;/dev/null
+    fi
+  elif [ &quot;_$NVM_MODE&quot; = &#x27;_use&#x27; ]; then
+    NVM_CURRENT=&quot;$(nvm_ls_current)&quot;
+    echo NVM_CURRENT=&quot;${NVM_CURRENT}&quot;
+    if [ &quot;_${NVM_CURRENT}&quot; = &#x27;_none&#x27; ] || [ &quot;_${NVM_CURRENT}&quot; = &#x27;_system&#x27; ]; then
+      export TIMEFORMAT=&#x27;%R nvm_resolve_local_alias&#x27;
+      time VERSION=&quot;$(nvm_resolve_local_alias default 2&gt;/dev/null || nvm_echo)&quot;
+      if [ -n &quot;${VERSION}&quot; ]; then
+        export TIMEFORMAT=&#x27;%R nvm use&#x27;
+        time nvm use --silent &quot;${VERSION}&quot; &gt;/dev/null
+      elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+        nvm use --silent &gt;/dev/null
+      fi
+    else
+      nvm use --silent &quot;${NVM_CURRENT}&quot; &gt;/dev/null
+    fi
+  elif [ &quot;_${NVM_MODE}&quot; != &#x27;_none&#x27; ]; then
+    nvm_err &#x27;Invalid auto mode supplied.&#x27;
+    return 1
+  fi
+}
+</code></pre><p>In some places, I printed out the current time instead of timing the execution:</p><pre><code class="language-shell">    &quot;use&quot;)
+      local PROVIDED_VERSION
+      local NVM_SILENT
+      local NVM_SILENT_ARG
+      local NVM_DELETE_PREFIX
+      NVM_DELETE_PREFIX=0
+      local NVM_LTS
+
+      date +&#x27;1 %s.%N&#x27;
+      while [ $# -ne 0 ]; do
+        case &quot;$1&quot; in
+          --silent)
+            NVM_SILENT=1
+            NVM_SILENT_ARG=&#x27;--silent&#x27;
+          ;;
+          --delete-prefix) NVM_DELETE_PREFIX=1 ;;
+          --) ;;
+          --lts) NVM_LTS=&#x27;*&#x27; ;;
+          --lts=*) NVM_LTS=&quot;${1##--lts=}&quot; ;;
+          --*) ;;
+          *)
+            if [ -n &quot;${1-}&quot; ]; then
+              PROVIDED_VERSION=&quot;$1&quot;
+            fi
+          ;;
+        esac
+        shift
+      done
+
+      date +&#x27;2 %s.%N&#x27;
+      if [ -n &quot;${NVM_LTS-}&quot; ]; then
+        VERSION=&quot;$(nvm_match_version &quot;lts/${NVM_LTS:-*}&quot;)&quot;
+      elif [ -z &quot;${PROVIDED_VERSION-}&quot; ]; then
+        NVM_SILENT=&quot;${NVM_SILENT:-0}&quot; nvm_rc_version
+        if [ -n &quot;${NVM_RC_VERSION-}&quot; ]; then
+          PROVIDED_VERSION=&quot;${NVM_RC_VERSION}&quot;
+          VERSION=&quot;$(nvm_version &quot;${PROVIDED_VERSION}&quot;)&quot;
+        fi
+        unset NVM_RC_VERSION
+        if [ -z &quot;${VERSION}&quot; ]; then
+          nvm_err &#x27;Please see `nvm --help` or https://github.com/nvm-sh/nvm#nvmrc for more information.&#x27;
+          return 127
+        fi
+      else
+        VERSION=&quot;$(nvm_match_version &quot;${PROVIDED_VERSION}&quot;)&quot;
+      fi
+
+      if [ -z &quot;${VERSION}&quot; ]; then
+        &gt;&amp;2 nvm --help
+        return 127
+      fi
+</code></pre><p>However, now the output seems a bit strange:</p><pre><code class="language-txt">0.053 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.003 /home/william/.bashrc.d/50-asdf.bashrc
+nvm_auto use
+NVM_CURRENT=none
+0.126 nvm_resolve_local_alias
+0.013 nvm_resolve_alias
+0.009 nvm_resolve_alias
+0.158 nvm use
+0.287 nvm use
+0.324 nvm use
+0.041 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+0.028 bashrc check
+</code></pre><ul><li>it seemed like <code>50-nvm.bashrc</code> was never executed at all -- but this is obviously false, because it was executed</li><li>it seemed like there were multiple invocations of <code>nvm use</code></li><li>the <code>date</code> command didn&#x27;t seem to be executed -- or is it?</li></ul><p>For the missing <code>date</code> command output, it&#x27;s just a matter of shell redirection. Removing the stdout redirection to <code>/dev/null</code> shows the output:</p><pre><code class="language-shell">nvm_auto() {
+  echo nvm_auto &quot;$@&quot;
+  local NVM_MODE
+  NVM_MODE=&quot;${1-}&quot;
+  local VERSION
+  local NVM_CURRENT
+  if [ &quot;_${NVM_MODE}&quot; = &#x27;_install&#x27; ]; then
+    VERSION=&quot;$(nvm_alias default 2&gt;/dev/null || nvm_echo)&quot;
+    if [ -n &quot;${VERSION}&quot; ]; then
+      nvm install &quot;${VERSION}&quot; &gt;/dev/null
+    elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+      nvm install &gt;/dev/null
+    fi
+  elif [ &quot;_$NVM_MODE&quot; = &#x27;_use&#x27; ]; then
+    NVM_CURRENT=&quot;$(nvm_ls_current)&quot;
+    echo NVM_CURRENT=&quot;${NVM_CURRENT}&quot;
+    if [ &quot;_${NVM_CURRENT}&quot; = &#x27;_none&#x27; ] || [ &quot;_${NVM_CURRENT}&quot; = &#x27;_system&#x27; ]; then
+      export TIMEFORMAT=&#x27;%R nvm_resolve_local_alias&#x27;
+      time VERSION=&quot;$(nvm_resolve_local_alias default 2&gt;/dev/null || nvm_echo)&quot;
+      if [ -n &quot;${VERSION}&quot; ]; then
+        export TIMEFORMAT=&#x27;%R nvm use&#x27;
+        time nvm use --silent &quot;${VERSION}&quot;
+      elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+        nvm use --silent &gt;/dev/null
+      fi
+    else
+      nvm use --silent &quot;${NVM_CURRENT}&quot; &gt;/dev/null
+    fi
+  elif [ &quot;_${NVM_MODE}&quot; != &#x27;_none&#x27; ]; then
+    nvm_err &#x27;Invalid auto mode supplied.&#x27;
+    return 1
+  fi
+}
+</code></pre><p>The stderr redirection is not a problem, it can stay there. The <code>time</code> command output is a bit more involved, though.</p><p>After reading through the source code, I realized that it was because the environment variable <code>TIMEFORMAT</code> kept getting overwritten by our <code>export</code> calls. This means that all of these actions are executed inside the current shell context, so every time we do an <code>export TIMEFORMAT=...</code>, we are actually overwriting that environment variable. Actually, if we see that all the functions are defined as <code>function_name() { ... }</code>, we know that the commands inside the function is executed in the same shell context as the caller.</p><p>Meanwhile, the variable <code>TIMEFORMAT</code> is evaluated when the command executed by <code>time</code> returns or exits, so if it was modified during the execution of the command, then the time printed will follow whatever <code>TIMEFORMAT</code> contains at that time.</p><p>On the other hand, we actually need all of this to be executed in the same shell context, so that the functions can define environment variables that we can use later. Sidenote: this is the only valid function definition in POSIX shell.</p><p>So basically what we need to do is, save the environment variable <code>TIMEFORMAT</code> before timing the command execution.</p><h2>A naive &quot;fix&quot;</h2><p>So I attempted a naive fix:</p><pre><code class="language-shell">nvm_process_parameters() {
+  local NVM_AUTO_MODE
+  NVM_AUTO_MODE=&#x27;use&#x27;
+  while [ $# -ne 0 ]; do
+    case &quot;$1&quot; in
+      --install) NVM_AUTO_MODE=&#x27;install&#x27; ;;
+      --no-use) NVM_AUTO_MODE=&#x27;none&#x27; ;;
+    esac
+    shift
+  done
+  _TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+  export TIMEFORMAT=&#x27;%R nvm_auto&#x27;
+  time nvm_auto &quot;${NVM_AUTO_MODE}&quot;
+  export TIMEFORMAT=&quot;${_TIMEFORMAT}&quot;
+}
+
+nvm_process_parameters &quot;$@&quot;
+</code></pre><pre><code class="language-shell">nvm_auto() {
+  echo nvm_auto &quot;$@&quot;
+  local NVM_MODE
+  NVM_MODE=&quot;${1-}&quot;
+  local VERSION
+  local NVM_CURRENT
+  if [ &quot;_${NVM_MODE}&quot; = &#x27;_install&#x27; ]; then
+    VERSION=&quot;$(nvm_alias default 2&gt;/dev/null || nvm_echo)&quot;
+    if [ -n &quot;${VERSION}&quot; ]; then
+      nvm install &quot;${VERSION}&quot; &gt;/dev/null
+    elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+      nvm install &gt;/dev/null
+    fi
+  elif [ &quot;_$NVM_MODE&quot; = &#x27;_use&#x27; ]; then
+    NVM_CURRENT=&quot;$(nvm_ls_current)&quot;
+    echo NVM_CURRENT=&quot;${NVM_CURRENT}&quot;
+    if [ &quot;_${NVM_CURRENT}&quot; = &#x27;_none&#x27; ] || [ &quot;_${NVM_CURRENT}&quot; = &#x27;_system&#x27; ]; then
+      _TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+      export TIMEFORMAT=&#x27;%R nvm_resolve_local_alias&#x27;
+      time VERSION=&quot;$(nvm_resolve_local_alias default 2&gt;/dev/null || nvm_echo)&quot;
+      export TIMEFORMAT=&quot;${_TIMEFORMAT}&quot;
+      if [ -n &quot;${VERSION}&quot; ]; then
+        _TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+        export TIMEFORMAT=&#x27;%R nvm use&#x27;
+        time nvm use --silent &quot;${VERSION}&quot;
+        export TIMEFORMAT=&quot;${_TIMEFORMAT}&quot;
+      elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+        nvm use --silent &gt;/dev/null
+      fi
+    else
+      nvm use --silent &quot;${NVM_CURRENT}&quot; &gt;/dev/null
+    fi
+  elif [ &quot;_${NVM_MODE}&quot; != &#x27;_none&#x27; ]; then
+    nvm_err &#x27;Invalid auto mode supplied.&#x27;
+    return 1
+  fi
+}
+</code></pre><p>Now we see that <code>date</code> is doing its job, but the output from the <code>time</code> statements still seem wrong:</p><pre><code class="language-txt">0.057 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.003 /home/william/.bashrc.d/50-asdf.bashrc
+nvm_auto use
+NVM_CURRENT=none
+0.131 nvm_resolve_local_alias
+0 1625994490.165539976
+1 1625994490.172686988
+2 1625994490.174463233
+0.012 nvm_resolve_alias
+3 1625994490.213854097
+0.010 nvm_resolve_alias
+4 1625994490.268562513
+5 1625994490.301861349
+6 1625994490.304278525
+7 1625994490.314978462
+0.152 nvm use
+0.286 nvm_auto
+0.313 nvm_auto
+0.040 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+0.020 bashrc check
+</code></pre><h2>The proper fix</h2><p>Eventually I realized that we need to do a little bit more. When we save the contents of <code>TIMEFORMAT</code> in <code>_TIMEFORMAT</code>, we are actually overwriting whatever is in <code>_TIMEFORMAT</code> previously. What we actually need to do is, we need to use a different environment variable for each level of function invocation.</p><p>So this is the first level, which is OK:</p><pre><code class="language-shell">nvm_process_parameters() {
+  local NVM_AUTO_MODE
+  NVM_AUTO_MODE=&#x27;use&#x27;
+  while [ $# -ne 0 ]; do
+    case &quot;$1&quot; in
+      --install) NVM_AUTO_MODE=&#x27;install&#x27; ;;
+      --no-use) NVM_AUTO_MODE=&#x27;none&#x27; ;;
+    esac
+    shift
+  done
+  _TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+  export TIMEFORMAT=&#x27;%R nvm_auto&#x27;
+  time nvm_auto &quot;${NVM_AUTO_MODE}&quot;
+  export TIMEFORMAT=&quot;${_TIMEFORMAT}&quot;
+}
+
+nvm_process_parameters &quot;$@&quot;
+</code></pre><p>It calls <code>nvm_auto</code>, which is the second level:</p><pre><code class="language-shell">nvm_auto() {
+  echo nvm_auto &quot;$@&quot;
+  local NVM_MODE
+  NVM_MODE=&quot;${1-}&quot;
+  local VERSION
+  local NVM_CURRENT
+  if [ &quot;_${NVM_MODE}&quot; = &#x27;_install&#x27; ]; then
+    VERSION=&quot;$(nvm_alias default 2&gt;/dev/null || nvm_echo)&quot;
+    if [ -n &quot;${VERSION}&quot; ]; then
+      nvm install &quot;${VERSION}&quot; &gt;/dev/null
+    elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+      nvm install &gt;/dev/null
+    fi
+  elif [ &quot;_$NVM_MODE&quot; = &#x27;_use&#x27; ]; then
+    NVM_CURRENT=&quot;$(nvm_ls_current)&quot;
+    echo NVM_CURRENT=&quot;${NVM_CURRENT}&quot;
+    if [ &quot;_${NVM_CURRENT}&quot; = &#x27;_none&#x27; ] || [ &quot;_${NVM_CURRENT}&quot; = &#x27;_system&#x27; ]; then
+      __TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+      export TIMEFORMAT=&#x27;%R nvm_resolve_local_alias&#x27;
+      time VERSION=&quot;$(nvm_resolve_local_alias default 2&gt;/dev/null || nvm_echo)&quot;
+      export TIMEFORMAT=&quot;${__TIMEFORMAT}&quot;
+      if [ -n &quot;${VERSION}&quot; ]; then
+        __TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+        export TIMEFORMAT=&#x27;%R nvm use&#x27;
+        time nvm use --silent &quot;${VERSION}&quot;
+        export TIMEFORMAT=&quot;${__TIMEFORMAT}&quot;
+      elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+        nvm use --silent &gt;/dev/null
+      fi
+    else
+      nvm use --silent &quot;${NVM_CURRENT}&quot; &gt;/dev/null
+    fi
+  elif [ &quot;_${NVM_MODE}&quot; != &#x27;_none&#x27; ]; then
+    nvm_err &#x27;Invalid auto mode supplied.&#x27;
+    return 1
+  fi
+}
+</code></pre><p>Note that within the same function, we don&#x27;t need to use different variables to save <code>TIMEFORMAT</code>. This is because the <code>time</code> invocations are not nested. However, in the above example, we need to use yet another variable in <code>nvm_resolve_local_alias</code>:</p><pre><code class="language-shell">nvm_resolve_local_alias() {
+  if [ -z &quot;${1-}&quot; ]; then
+    return 1
+  fi
+
+  local VERSION
+  local EXIT_CODE
+  ___TIMEFORMAT=&quot;${TIMEFORMAT}&quot;
+  export TIMEFORMAT=&#x27;%R nvm_resolve_alias&#x27;
+  time VERSION=&quot;$(nvm_resolve_alias &quot;${1-}&quot;)&quot;
+  EXIT_CODE=$?
+  export TIMEFORMAT=&quot;${___TIMEFORMAT}&quot;
+  if [ -z &quot;${VERSION}&quot; ]; then
+    return $EXIT_CODE
+  fi
+  if [ &quot;_${VERSION}&quot; != &#x27;_∞&#x27; ]; then
+    nvm_version &quot;${VERSION}&quot;
+  else
+    nvm_echo &quot;${VERSION}&quot;
+  fi
+}
+</code></pre><p>(note that we need to save the return value before restoring the <code>TIMEFORMAT</code> variable -- otherwise it will also be overwritten)</p><p>Now, the output looks correct, and we know the execution time of the separate function calls:</p><pre><code class="language-txt">0.053 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.002 /home/william/.bashrc.d/50-asdf.bashrc
+nvm_auto use
+NVM_CURRENT=none
+0.108 nvm_resolve_local_alias
+0 1625995040.289644320
+1 1625995040.293696818
+2 1625995040.294921503
+0.007 nvm_resolve_alias
+3 1625995040.336312682
+0.011 nvm_resolve_alias
+4 1625995040.385616982
+5 1625995040.417216708
+6 1625995040.418956680
+7 1625995040.429000260
+0.142 nvm use
+0.253 nvm_auto
+0.278 /home/william/.bashrc.d/50-nvm.bashrc
+0.039 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+0.018 bashrc check
+</code></pre><p>Note that we could not use arrays, because POSIX shell does not have an array type.</p><h2>An alternative method</h2><p>There is an alternative method, which is simpler and shows the execution depth, but it is slower:</p><pre><code class="language-shell">nvm_process_parameters() {
+  local NVM_AUTO_MODE
+  NVM_AUTO_MODE=&#x27;use&#x27;
+  while [ $# -ne 0 ]; do
+    case &quot;$1&quot; in
+      --install) NVM_AUTO_MODE=&#x27;install&#x27; ;;
+      --no-use) NVM_AUTO_MODE=&#x27;none&#x27; ;;
+    esac
+    shift
+  done
+  export TIMEFORMAT=&quot;${TIMEFORMAT} / nvm_auto&quot;
+  time nvm_auto &quot;${NVM_AUTO_MODE}&quot;
+  export TIMEFORMAT=&quot;${TIMEFORMAT% / nvm_auto}&quot;
+}
+
+nvm_process_parameters &quot;$@&quot;
+</code></pre><pre><code class="language-shell">nvm_auto() {
+  echo nvm_auto &quot;$@&quot;
+  local NVM_MODE
+  NVM_MODE=&quot;${1-}&quot;
+  local VERSION
+  local NVM_CURRENT
+  if [ &quot;_${NVM_MODE}&quot; = &#x27;_install&#x27; ]; then
+    VERSION=&quot;$(nvm_alias default 2&gt;/dev/null || nvm_echo)&quot;
+    if [ -n &quot;${VERSION}&quot; ]; then
+      nvm install &quot;${VERSION}&quot; &gt;/dev/null
+    elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+      nvm install &gt;/dev/null
+    fi
+  elif [ &quot;_$NVM_MODE&quot; = &#x27;_use&#x27; ]; then
+    NVM_CURRENT=&quot;$(nvm_ls_current)&quot;
+    echo NVM_CURRENT=&quot;${NVM_CURRENT}&quot;
+    if [ &quot;_${NVM_CURRENT}&quot; = &#x27;_none&#x27; ] || [ &quot;_${NVM_CURRENT}&quot; = &#x27;_system&#x27; ]; then
+      export TIMEFORMAT=&quot;${TIMEFORMAT} / nvm_resolve_local_alias&quot;
+      time VERSION=&quot;$(nvm_resolve_local_alias default 2&gt;/dev/null || nvm_echo)&quot;
+      export TIMEFORMAT=&quot;${TIMEFORMAT% / nvm_resolve_local_alias}&quot;
+      if [ -n &quot;${VERSION}&quot; ]; then
+        export TIMEFORMAT=&quot;${TIMEFORMAT} / nvm use&quot;
+        time nvm use --silent &quot;${VERSION}&quot;
+        export TIMEFORMAT=&quot;${TIMEFORMAT% / nvm use}&quot;
+      elif nvm_rc_version &gt;/dev/null 2&gt;&amp;1; then
+        nvm use --silent &gt;/dev/null
+      fi
+    else
+      nvm use --silent &quot;${NVM_CURRENT}&quot; &gt;/dev/null
+    fi
+  elif [ &quot;_${NVM_MODE}&quot; != &#x27;_none&#x27; ]; then
+    nvm_err &#x27;Invalid auto mode supplied.&#x27;
+    return 1
+  fi
+}
+</code></pre><pre><code class="language-shell">nvm_resolve_local_alias() {
+  if [ -z &quot;${1-}&quot; ]; then
+    return 1
+  fi
+
+  local VERSION
+  local EXIT_CODE
+  export TIMEFORMAT=&quot;${TIMEFORMAT} / nvm_resolve_alias&quot;
+  time VERSION=&quot;$(nvm_resolve_alias &quot;${1-}&quot;)&quot;
+  EXIT_CODE=$?
+  export TIMEFORMAT=&quot;${TIMEFORMAT% / nvm_resolve_alias}&quot;
+  if [ -z &quot;${VERSION}&quot; ]; then
+    return $EXIT_CODE
+  fi
+  if [ &quot;_${VERSION}&quot; != &#x27;_∞&#x27; ]; then
+    nvm_version &quot;${VERSION}&quot;
+  else
+    nvm_echo &quot;${VERSION}&quot;
+  fi
+}
+</code></pre><p>With this method, we get:</p><pre><code>0.058 /home/william/.bashrc.d/00-default.bashrc
+0.000 /home/william/.bashrc.d/50-android-sdk.bashrc
+0.000 /home/william/.bashrc.d/50-android-studio.bashrc
+0.005 /home/william/.bashrc.d/50-asdf.bashrc
+nvm_auto use
+NVM_CURRENT=none
+0.109 /home/william/.bashrc.d/50-nvm.bashrc / nvm_auto / nvm_resolve_local_alias
+0 1625995835.146498759
+1 1625995835.151210563
+2 1625995835.152251905
+0.009 /home/william/.bashrc.d/50-nvm.bashrc / nvm_auto / nvm use / nvm_resolve_alias
+3 1625995835.195350192
+0.011 /home/william/.bashrc.d/50-nvm.bashrc / nvm_auto / nvm use / nvm_resolve_alias
+4 1625995835.248658001
+5 1625995835.280006594
+6 1625995835.282036172
+7 1625995835.291081025
+0.148 /home/william/.bashrc.d/50-nvm.bashrc / nvm_auto / nvm use
+0.262 /home/william/.bashrc.d/50-nvm.bashrc / nvm_auto
+0.289 /home/william/.bashrc.d/50-nvm.bashrc
+0.040 /home/william/.bashrc.d/50-sdkman.bashrc
+0.000 /home/william/.bashrc.d/90-gradle-opts.bashrc
+0.025 bashrc check
+</code></pre><p>These two methods should be enough for now. I do wonder if we can use <code>local</code> variables for this, and if we can actually avoid the <code>export</code>s -- well, that&#x27;s another blog post for another day, and maybe I&#x27;ll make a custom shell script to demonstrate that.</p><h2>Conclusion</h2><p>All in all, today we have learned:</p><ol><li>there is almost always more than one way to do it</li><li>shell is not that simple, we need to think of execution context before overwriting variables</li><li>check to see if stdout is redirected, otherwise some output may be missing</li><li>be careful when adding profiling into code, make sure that return values are saved</li></ol>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Using a `.bashrc.d` directory instead of just `.bashrc`]]></title>
+            <link>https://wpyoga.github.io/blog/2021/07/10/bashrc-directory</link>
+            <guid>/2021/07/10/bashrc-directory</guid>
+            <pubDate>Sat, 10 Jul 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[When we install a new development environment, the installer will usually modify /.bashrc or /.profile. However, this is not very clean, because sometimes the entries are not removed when the development environment is uninstalled.]]></description>
+            <content:encoded><![CDATA[<p>When we install a new development environment, the installer will usually modify <code>~/.bashrc</code> or <code>~/.profile</code>. However, this is not very clean, because sometimes the entries are not removed when the development environment is uninstalled.</p><h2>Why use a directory?</h2><p>By using a directory, we can add and remove customizations by simply adding and removing files. Consider this example: when we install <a href="https://sdkman.io/">SDKMAN!</a>, the installer adds these lines to <code>~/.bashrc</code> by default:</p><pre><code class="language-shell">#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR=&quot;/home/william/.sdkman&quot;
+[[ -s &quot;/home/william/.sdkman/bin/sdkman-init.sh&quot; ]] &amp;&amp; source &quot;/home/william/.sdkman/bin/sdkman-init.sh&quot;
+</code></pre><p>Then when we uninstall SDKMAN!, we have to open the <code>~/.bashrc</code> file and remove the lines that were added.</p><p>The same thing happens with <code>nvm</code>, a popular version manager for <code>Node.js</code>.</p><p>Some installers even had to let the user edit <code>~/.bashrc</code> by hand.</p><h2>Historical precedence</h2><p>Actually, this is not a new idea. The directory <code>/etc/profile.d</code> exists for the same reason, albeit for software installed directly onto the system. The contents of this directory is sourced in by <code>/etc/profile</code>, as seen in the snippet below:</p><pre><code class="language-shell">if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+</code></pre><p>Also, someone else has <a href="https://waxzce.medium.com/use-bashrc-d-directory-instead-of-bloated-bashrc-50204d5389ff">blogged about this topic</a> on Medium. However, some Medium articles are blocked by a paywall, and I&#x27;m not sure if that article is a paid article, or will be made a paid article at some point in the future, so I&#x27;m making this blog post instead. In contrast, this blog will always be free, at least as long as GitHub continues to provide GitHub Pages for free.</p><h2>Further information</h2><p><code>~/.bashrc.d</code></p><ul><li>(2002) <a href="https://bugs.gentoo.org/4854">https://bugs.gentoo.org/4854</a></li><li>(2011) <a href="http://blogs.perl.org/users/chisel/2011/08/managing-my-shell-setup.html">http://blogs.perl.org/users/chisel/2011/08/managing-my-shell-setup.html</a></li><li>(2012) <a href="https://groups.google.com/g/linux.debian.bugs.dist/c/1mDbDViPFFQ">https://groups.google.com/g/linux.debian.bugs.dist/c/1mDbDViPFFQ</a></li><li>(2012) <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=675008">https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=675008</a></li><li>(2015) <a href="https://freesoft.dev/program/31617374">https://freesoft.dev/program/31617374</a></li><li>(2015) <a href="https://blog.sanctum.geek.nz/tag/bashrc-d/">https://blog.sanctum.geek.nz/tag/bashrc-d/</a></li><li>(2016) <a href="https://lsbbugs.linuxfoundation.org/show_bug.cgi?id=4167">https://lsbbugs.linuxfoundation.org/show_bug.cgi?id=4167</a></li><li>(2016) <a href="https://github.com/jdcapa/bashrc.d">https://github.com/jdcapa/bashrc.d</a></li><li>(2017) <a href="https://waxzce.medium.com/use-bashrc-d-directory-instead-of-bloated-bashrc-50204d5389ff">https://waxzce.medium.com/use-bashrc-d-directory-instead-of-bloated-bashrc-50204d5389ff</a></li><li>(2017) <a href="https://github.com/oskar404/.bashrc.d">https://github.com/oskar404/.bashrc.d</a></li><li>(2019) <a href="https://sneak.berlin/20191011/stupid-unix-tricks/">https://sneak.berlin/20191011/stupid-unix-tricks/</a></li><li>(2019) <a href="https://bugzilla.redhat.com/show_bug.cgi?id=1726397">https://bugzilla.redhat.com/show_bug.cgi?id=1726397</a></li><li>(2019) <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=931353">https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=931353</a></li><li>(2019) <a href="https://bugs.launchpad.net/ubuntu/+source/bash/+bug/1835077">https://bugs.launchpad.net/ubuntu/+source/bash/+bug/1835077</a></li><li>(2020) <a href="https://source.arknet.ch/fmorgner/dotfiles/-/tree/16f950b2ce140a81e45bcad99ea142a6f3f7a7f2/bashrc.d">https://source.arknet.ch/fmorgner/dotfiles/-/tree/16f950b2ce140a81e45bcad99ea142a6f3f7a7f2/bashrc.d</a></li><li>(2020) <a href="https://dev.to/swiknaba/how-to-organize-your-bash-profile-20eb">https://dev.to/swiknaba/how-to-organize-your-bash-profile-20eb</a></li><li>(2020) <a href="https://lab.retarded.farm/zappel/zGentoo-playground/-/tree/22e288c8b0ed166d1bc0050f9f00e3fe4708b0d4/etc/bash/bashrc.d">https://lab.retarded.farm/zappel/zGentoo-playground/-/tree/22e288c8b0ed166d1bc0050f9f00e3fe4708b0d4/etc/bash/bashrc.d</a></li><li>(2021) <a href="https://blog.jbriault.fr/bashrc-d/">https://blog.jbriault.fr/bashrc-d/</a></li><li><a href="https://g.gg42.eu/framagit/conf-99-basic_config_debian/commit/56f82be3cc0f98af05989f34f44817e90d0e814f">https://g.gg42.eu/framagit/conf-99-basic_config_debian/commit/56f82be3cc0f98af05989f34f44817e90d0e814f</a></li><li><a href="https://write.as/bpsylevc6lliaspe">https://write.as/bpsylevc6lliaspe</a></li><li><a href="https://timnash.co.uk/bashing-my-bashrc-productivity-fridays/">https://timnash.co.uk/bashing-my-bashrc-productivity-fridays/</a></li></ul><p><code>/etc/profile.d</code>:</p><ul><li><a href="https://eng.libretexts.org/Bookshelves/Computer_Science/Operating_Systems/Linux_-_The_Penguin_Marches_On_(McClanahan)/02%3A_User_Group_Administration/5.03%3A_System_Wide_User_Profiles/5.03.2_System_Wide_User_Profiles%3A_The_etc-profile.d_Directory">https://eng.libretexts.org/Bookshelves/Computer_Science/Operating_Systems/Linux_-_The_Penguin_Marches_On_(McClanahan)/02%3A_User_Group_Administration/5.03%3A_System_Wide_User_Profiles/5.03.2_System_Wide_User_Profiles%3A_The_etc-profile.d_Directory</a></li><li>(2014) <a href="https://askubuntu.com/questions/438150/why-are-scripts-in-etc-profile-d-being-ignored-system-wide-bash-aliases">https://askubuntu.com/questions/438150/why-are-scripts-in-etc-profile-d-being-ignored-system-wide-bash-aliases</a></li></ul><p><code>profile</code> and <code>bashrc</code> in general:</p><ul><li>(2013) <a href="https://bencane.com/2013/09/16/understanding-a-little-more-about-etcprofile-and-etcbashrc/">https://bencane.com/2013/09/16/understanding-a-little-more-about-etcprofile-and-etcbashrc/</a></li><li>(2017) <a href="https://scriptingosx.com/2017/04/about-bash_profile-and-bashrc-on-macos/">https://scriptingosx.com/2017/04/about-bash_profile-and-bashrc-on-macos/</a></li></ul><h2>Simple implementation</h2><p>To implement the <code>~/.bashrc.d</code> scheme, we first need to make that directory, and then move the original rc file into that directory:</p><pre><code class="language-shell">$ cd
+$ mkdir .bashrc.d
+$ mv -i .bashrc .bashrc.d/00-default.bashrc
+</code></pre><p>After that, we need to make a replacement <code>~/.bashrc</code> file that sources all the scripts inside <code>~/.bashrc.d</code>. This is basically an adaptation of the code snippet in <code>/etc/profile</code>:</p><pre><code class="language-shell">for i in &quot;${HOME}/.bashrc.d&quot;/[0-9][0-9]-*.bashrc; do
+  if [ -r &quot;$i&quot; ]; then
+    . &quot;$i&quot;
+  fi
+done
+unset i
+</code></pre><p>Note that we don&#x27;t need to test if the directory is present -- if it&#x27;s not present, then <code>i</code> will look something like <code>/home/william/.bashrc.d/*.bashrc</code>, so the following test for readability will fail anyway.</p><p>With this scheme, when you install a new software or SDK into your personal home directory, just add a new file named something like <code>50-file.bashrc</code> in <code>~/.bashrc.d</code> and it will be sourced in during shell startup.</p><h2>Self-cleaning implementation</h2><p>With the above implementation, some scripts will still directly modify <code>~/.bashrc</code>, and ignore the <code>~/.bashrc.d</code> directory. We can actually make a self-cleaning implementation, so that lines appended to <code>~/.bashrc</code> will automatically be moved into <code>~/.bashrc.d</code>.</p><p>An easy way to do that, is by using markers in <code>~/.bashrc</code>. The markers tell us when the original file starts and ends, so that we can move all the other content into <code>~/.bashrc.d</code>.</p><p>To achieve this, we modify <code>~/.bashrc</code> even further:</p><pre><code class="language-shell">### BASHRC START
+for i in &quot;${HOME}/.bashrc.d&quot;/[0-9][0-9]-*.bashrc; do
+  if [ -r &quot;$i&quot; ]; then
+    . &quot;$i&quot;
+  fi
+done
+unset i
+
+if which mktemp &gt;/dev/null 2&gt;&amp;1; then
+  BASHRC_BEFORE=&quot;$(mktemp &quot;${HOME}/.bashrc.d/50-new-XXXXXX&quot;)&quot;
+  BASHRC_AFTER=&quot;$(mktemp &quot;${HOME}/.bashrc.d/50-new-XXXXXX&quot;)&quot;
+  BASHRC_TEMP=&quot;$(mktemp &quot;${HOME}/.bashrc-XXXXXX&quot;)&quot;
+  BASHRC_MODE=before
+  while IFS= read -r LINE; do
+    if [ &quot;${LINE}&quot; = &#x27;### BASHRC START&#x27; ]; then
+      BASHRC_MODE=bashrc
+    elif [ &quot;${LINE}&quot; = &#x27;### BASHRC END&#x27; ]; then
+      BASHRC_MODE=after
+      continue
+    fi
+
+    if [ &quot;${BASHRC_MODE}&quot; = &#x27;before&#x27; ]; then
+      printf &#x27;%s\n&#x27; &quot;${LINE}&quot; &gt;&gt;&quot;${BASHRC_BEFORE}&quot;
+    elif [ &quot;${BASHRC_MODE}&quot; = &#x27;after&#x27; ]; then
+      printf &#x27;%s\n&#x27; &quot;${LINE}&quot; &gt;&gt;&quot;${BASHRC_AFTER}&quot;
+    else
+      printf &#x27;%s\n&#x27; &quot;${LINE}&quot; &gt;&gt;&quot;${BASHRC_TEMP}&quot;
+    fi
+  done &lt;&quot;${HOME}/.bashrc&quot;
+  # this marker is never printed in the loop
+  echo &#x27;### BASHRC END&#x27; &gt;&gt;&quot;${BASHRC_TEMP}&quot;
+  mv &quot;${BASHRC_TEMP}&quot; &quot;${HOME}/.bashrc&quot;
+
+  if [ -s &quot;${BASHRC_BEFORE}&quot; -o -s &quot;${BASHRC_AFTER}&quot; ]; then
+    echo &quot;~/.bashrc has been modified. Check the following files for customizations:&quot;
+    [ -s &quot;${BASHRC_BEFORE}&quot; ] &amp;&amp; echo &quot;* ${BASHRC_BEFORE}&quot;
+    [ -s &quot;${BASHRC_AFTER}&quot; ] &amp;&amp; echo &quot;* ${BASHRC_AFTER}&quot;
+  else
+    [ ! -s &quot;${BASHRC_BEFORE}&quot; ] &amp;&amp; rm &quot;${BASHRC_BEFORE}&quot;
+    [ ! -s &quot;${BASHRC_AFTER}&quot; ] &amp;&amp; rm &quot;${BASHRC_AFTER}&quot;
+  fi
+  unset BASHRC_BEFORE BASHRC_AFTER BASHRC_TEMP BASHRC_MODE
+fi
+### BASHRC END
+</code></pre><p>This looks bloated and unnecessary. But this section takes only 9 ms on my laptop (i5-5200u), so it may not be so slow after all. Still, if you think it&#x27;s too complicated, you can use the <a href="#simple-implementation">simple implementation</a> instead.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[GitHub `main` branch]]></title>
+            <link>https://wpyoga.github.io/blog/2021/06/16/github-main-branch</link>
+            <guid>/2021/06/16/github-main-branch</guid>
+            <pubDate>Wed, 16 Jun 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[I just found out today that GitHub has changed the default name of the master branch to "main". This is supposedly done to avoid any references to slavery (master, slave, get it?), but I think it's a load of bullshit.]]></description>
+            <content:encoded><![CDATA[<p>I just found out today that GitHub has changed the default name of the <code>master</code> branch to &quot;main&quot;. This is supposedly done to avoid any references to slavery (master, slave, get it?), but I think it&#x27;s a load of bullshit.</p><h2>Disclaimer</h2><p>Do I support slavery? Hell no!</p><p>Do I support <a href="https://en.wikipedia.org/wiki/Political_correctness">political correctness</a>? Fuck no!</p><p>Does naming the default branch <code>master</code> instead of something else mean you support slavery? Of course not!</p><p>Anyway, I have always wondered why when I create a new repo in GitHub, it seems to want me to create a &quot;main&quot; branch instead of the more familiar <code>master</code> branch. Now I know why. And now I know how far behind I am on the current state of affairs.</p><p>Oh, and by the way, not mentioning <code>master</code> and <code>slave</code> in everyday life does not protect minorities and people born to slavery. It just makes us forget about humanity&#x27;s ugly side, and may even lead some to re-enact slavery in the future. When you don&#x27;t know the pain of being burned in a fire, you don&#x27;t care when someone wants to start a fire. When you don&#x27;t know the ugly truth behind slavery, you don&#x27;t care when someone devises a &quot;cool&quot; way to re-establish slavery.</p><h2>Regaining some sanity</h2><p>If you have accidentally created a &quot;main&quot; branch, you can safely rename it. First, rename the branch locally:</p><pre><code class="language-shell-session">$ git branch --move main master
+</code></pre><p>Then, push the <code>master</code> branch to GitHub:</p><pre><code class="language-shell-session">$ git push --set-upstream origin master
+$ git remote set-head origin master
+</code></pre><p>Voilà! Now you have regained sanity, saved a few brain cells, and can work normally again.</p><h2>Avoiding hassle of renaming branches</h2><p>GitHub now changes the default branch name to &quot;main&quot;. To avoid the hassle of renaming the <code>master</code> branch of future repositories, open the <a href="https://github.com/settings/repositories">repository configuration page</a> and change the <code>Repository default branch</code> setting to <code>master</code>, then click <code>Update</code>. New repositories will have a <code>master</code> branch by default.</p><h2>Closing rant</h2><p>There is a nice comment on <a href="https://www.zdnet.com/article/github-to-replace-master-with-main-starting-next-month/">this article</a>:</p><blockquote><p>Now I&#x27;m gobsmacked (can I say &quot;gobsmacked&quot; or does that offend victims of physical violence?). This is ridiculous, where do you draw the line!?
+Has this terminology even been tested with the people who are expected to be offended by it!?
+i&#x27;m all for equality and fully support the BLM movement - ALL people should be treated with the same respect - but actions such as this do nothing to help the movement, they just serve to further divide.
+History is exactly that, it happened. Ceasing to use a word does not erase the action that it may once have been associated with. You can&#x27;t scrub away all references to poor treatment, if you try, there will be no safe words left.</p></blockquote><p>See also the replies in this <a href="https://lore.kernel.org/git/CAOAHyQwyXC1Z3v7BZAC+Bq6JBaM7FvBenA-1fcqeDV==apdWDg@mail.gmail.com/t/">email thread</a>.</p><p>I will not be bullied into changing my repository default branch names to &quot;main&quot;. Neither will I deceive myself by thinking that using &quot;main&quot; instead of <code>master</code> is better. When <code>git</code> changes its default branch to &quot;main&quot;, I will follow suit. I hope that day does not come too soon, but with <a href="https://arstechnica.com/gadgets/2018/09/linus-torvalds-apologizes-for-years-of-being-a-jerk-takes-time-off-to-learn-empathy/">Linus apologizing for &quot;being a jerk&quot;</a>, I wonder how soon that day will come.</p><p>May humankind survive the incoming onslaught of snowflakes.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Possible dirname bug in Webpack]]></title>
+            <link>https://wpyoga.github.io/blog/2021/06/13/possible-webpack-dirname-bug</link>
+            <guid>/2021/06/13/possible-webpack-dirname-bug</guid>
+            <pubDate>Sun, 13 Jun 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[I got an error while trying to build this blog in a temporary directory. This might be a webpack bug -- or not.]]></description>
+            <content:encoded><![CDATA[<p>I got an error while trying to build this blog in a temporary directory. This might be a webpack bug -- or not.</p><pre><code class="language-shell-session">$ yarn build --out-dir &quot;${TMPDIR}&quot;
+yarn run v1.22.10
+$ docusaurus build --out-dir /tmp/tmp.pEBNPFYg2h
+
+[en] Creating an optimized production build...
+
+✔ Client
+  
+
+● Server █████████████████████████ cache (99%) shutdown IdleFileCachePlugin
+ stored
+
+Error: EISDIR: illegal operation on a directory, open &#x27;/tmp/tmp.pEBNPFYg2h&#x27;
+error building locale=en
+Error: EISDIR: illegal operation on a directory, open &#x27;/tmp/tmp.pEBNPFYg2h&#x27;
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+</code></pre><p>So I started investigating -- first figuring out where the problem is.
+I thought it was due to permissions, but I changed the directory permissions to <code>0775</code> and it still didn&#x27;t work.
+I thought it was due to the temporary directory being outside of the source directory, so I tried using <code>mktemp -d -p .</code> to make the temporary in the current directory instead -- but it still failed. This is when I realized that the trigger is the dot character in the directory name.</p><p>I found the script executing the <code>build</code> command at <code>node_modules/@docusaurus/core/lib/commands/build.js</code>. I added a few checkpoints, and re-ran the script:</p><pre><code class="language-shell-session">$ yarn build --out-dir test.dir
+yarn run v1.22.10
+$ docusaurus build --out-dir test.dir
+
+[en] Creating an optimized production build...
+check 100
+check 200
+check 300
+
+✔ Client
+
+● Client █████████████████████████ cache (99%)  
+
+✔ Client
+  
+
+● Server █████████████████████████ cache (99%) shutdown IdleFileCachePlugin
+ stored
+
+Error: EISDIR: illegal operation on a directory, open &#x27;/home/william/Documents/wpyoga/wpyoga.github.io/test.dir&#x27;
+error building locale=en
+Error: EISDIR: illegal operation on a directory, open &#x27;/home/william/Documents/wpyoga/wpyoga.github.io/test.dir&#x27;
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+</code></pre><p>This is where it failed:</p><pre><code class="language-js">console.log(&quot;check 300&quot;);
+    // Run webpack to build JS bundle (client) and static html files (server).
+    await utils_1.compile([clientConfig, serverConfig]);
+console.log(&quot;check 350&quot;);
+</code></pre><p>It turned out, <code>utils_1</code> is a webpack wrapper (??? maybe, not sure, I don&#x27;t know the pattern):</p><pre><code class="language-js">const utils_1 = require(&quot;../webpack/utils&quot;);
+</code></pre><p>In the file <code>node_modules/@docusaurus/core/lib/webpack/utils.js</code>, there is a function <code>compile()</code>:</p><pre><code class="language-js">function compile(config) {
+    return new Promise((resolve, reject) =&gt; {
+        const compiler = webpack_1.default(config);
+        compiler.run((err, stats) =&gt; {
+</code></pre><p>And <code>webpack_1</code> is:</p><pre><code class="language-js">const webpack_1 = tslib_1.__importDefault(require(&quot;webpack&quot;));
+</code></pre><p>It looks like a bug (or feature, keep reading) in webpack. I haven&#x27;t tried to debug this yet.</p><h2>Possibly a feature</h2><p>Some googling led me to this page: <a href="https://stackoverflow.com/questions/37070141/webpack-dev-server-allow-paths-with-dot-in-them">https://stackoverflow.com/questions/37070141/webpack-dev-server-allow-paths-with-dot-in-them</a></p><p>It seems that webpack, or one of its plugins, try to differentiate files from directories by checking whether it has a dot in its name. So when it sees a dot, it assumes that the entity is a file instead of a directory.</p><p>These commands work though, because the file name does not contain a dot. Only the pathname does, and the preceding path components cannot be files.</p><pre><code class="language-shell-session">$ yarn build --out-dir tmp.123/aaa
+$ yarn build --out-dir /tmp/tpm.123456/bbb
+</code></pre>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Deploying Docusaurus site to GitHub the easy way]]></title>
+            <link>https://wpyoga.github.io/blog/2021/06/12/docusaurus-deploy</link>
+            <guid>/2021/06/12/docusaurus-deploy</guid>
+            <pubDate>Sat, 12 Jun 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[Before, we need to run this command to deploy a Docusaurus site to GitHub Pages:]]></description>
+            <content:encoded><![CDATA[<p>Before, we need to run this command to deploy a Docusaurus site to GitHub Pages:</p><pre><code class="language-shell-session">$ GIT_USER=wpyoga DEPLOYMENT_BRANCH=gh-pages USE_SSH=true yarn deploy
+</code></pre><p>If we don&#x27;t use SSH, we will be prompted for a password. Right now I don&#x27;t even know my own password (it&#x27;s stored in my password manager), so this is not a good idea. And I already use SSH to work on GitHub repositories anyway. So this is not a good way to do things.</p><p>But wait -- if we already use SSH, why do we need to specify GIT_USER again? That&#x27;s exactly... what another user mentioned in <a href="https://github.com/facebook/docusaurus/issues/3454">Docusaurus#3454</a>.</p><p>Let&#x27;s take this a few steps further:</p><ul><li><p>If we use SSH, our remote origin URL looks like this: <code>git@github.com:wpyoga/wpyoga.github.io.git</code></p><pre><code class="language-shell-session">$ git config --get remote.origin.url
+git@github.com:wpyoga/wpyoga.github.io.git
+</code></pre><p>  So why do we need to specify <code>USE_SSH=true</code>?</p></li><li><p>And if we use SSH, when pushing to the upstream branch, we don&#x27;t even need to specify the username -- git takes care of this for us. So why do we need to specify <code>GIT_USER</code>?</p></li><li><p>As for the deployment branch: yes, the default is <code>master</code> for the special repository <code>_username_.github.io</code>, but I don&#x27;t like this pattern, and I want to use <code>gh-pages</code> for my <code>wpyoga.github.io</code> repo. This configuration is usually static, so let&#x27;s store it inside <code>docusaurus.config.js</code>:</p><pre><code class="language-js">module.exports = {
+  // ...
+  projectName: &#x27;wpyoga.github.io&#x27;,
+  deploymentBranch: &#x27;gh-pages&#x27;,
+  // ...
+</code></pre></li></ul><p>Now, <code>docusaurus deploy</code> doesn&#x27;t understand these new mechanisms. And since I don&#x27;t have a working TypeScript development environment (I&#x27;m not there yet...) I can only edit the generated JavaScript by hand. The functionality is in the file <code>node_modules/@docusaurus/core/lib/commands/deploy.js</code>.</p><p>So I made a backup at <code>node_modules/@docusaurus/core/lib/commands/deploy.js.orig</code> and made a few changes:</p><pre><code class="language-diff">--- node_modules/@docusaurus/core/lib/commands/deploy.js.orig   2021-06-12 11:49:51.340710466 +0700
++++ node_modules/@docusaurus/core/lib/commands/deploy.js    2021-06-12 12:51:51.064280040 +0700
+@@ -42,8 +42,16 @@
+     if (!shelljs_1.default.which(&#x27;git&#x27;)) {
+         throw new Error(&#x27;Git not installed or on the PATH!&#x27;);
+     }
++    var _useSSH = process.env.USE_SSH || &#x27;false&#x27;; // make sure useSSH is always defined
++    if (_useSSH !== &#x27;true&#x27;) {
++        const remoteOriginUrl = shelljs_1.default.exec(&#x27;git config --get remote.origin.url&#x27;).stdout.trim();
++        if (remoteOriginUrl.match(/^ssh:\/\//) !== null || remoteOriginUrl.match(/^([\w\-]+@)?[\w.\-]+:[\w.\-\/_]+\.git/) !== null) {
++            _useSSH = &#x27;true&#x27;;
++        }
++    }
++    const useSSH = _useSSH === &#x27;true&#x27; ? &#x27;true&#x27; : &#x27;false&#x27;;
+     const gitUser = process.env.GIT_USER;
+-    if (!gitUser) {
++    if (!gitUser &amp;&amp; useSSH.toLocaleLowerCase() !== &#x27;true&#x27;) {
+         throw new Error(&#x27;Please set the GIT_USER environment variable!&#x27;);
+     }
+     // The branch that contains the latest docs changes that will be deployed.
+@@ -71,6 +79,7 @@
+     }
+     // github.io indicates organization repos that deploy via master. All others use gh-pages.
+     const deploymentBranch = process.env.DEPLOYMENT_BRANCH ||
++        siteConfig.deploymentBranch ||
+         (projectName.indexOf(&#x27;.github.io&#x27;) !== -1 ? &#x27;master&#x27; : &#x27;gh-pages&#x27;);
+     console.log(`${chalk_1.default.cyan(&#x27;deploymentBranch:&#x27;)} ${deploymentBranch}`);
+     const githubHost = process.env.GITHUB_HOST || siteConfig.githubHost || &#x27;github.com&#x27;;
+@@ -80,7 +89,6 @@
+     if (gitPass) {
+         gitCredentials = `${gitCredentials}:${gitPass}`;
+     }
+-    const useSSH = process.env.USE_SSH;
+     const remoteBranch = buildRemoteBranchUrl_1.buildUrl(githubHost, githubPort, gitCredentials, organizationName, projectName, useSSH !== undefined &amp;&amp; useSSH.toLowerCase() === &#x27;true&#x27;);
+     console.log(`${chalk_1.default.cyan(&#x27;Remote branch:&#x27;)} ${obfuscateGitPass(remoteBranch)}`);
+     // Check if this is a cross-repo publish.
+</code></pre><p>But then <code>yarn build</code> complains:</p><pre><code class="language-shell-session">$ yarn build
+yarn run v1.22.10
+$ docusaurus build
+
+A validation error occured.
+The validation system was added recently to Docusaurus as an attempt to avoid user configuration errors.
+We may have made some mistakes.
+If you think your configuration is valid and should keep working, please open a bug report.
+
+Error: These field(s) [&quot;deploymentBranch&quot;,] are not recognized in docusaurus.config.js.
+If you still want these fields to be in your configuration, put them in the &#x27;customFields&#x27; attribute.
+See https://docusaurus.io/docs/docusaurus.config.js/#customfields
+    at Object.validateConfig (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/lib/server/configValidation.js:118:15)
+    at Object.loadConfig [as default] (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/lib/server/config.js:18:31)
+    at Object.loadContext (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/lib/server/index.js:38:47)
+    at build (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/lib/commands/build.js:45:36)
+    at /home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/bin/docusaurus.js:94:5
+    at Command.&lt;anonymous&gt; (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/bin/docusaurus.js:126:23)
+    at Command.listener [as _actionHandler] (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/node_modules/commander/index.js:413:31)
+    at Command._parseCommand (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/node_modules/commander/index.js:914:14)
+    at Command._dispatchSubcommand (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/node_modules/commander/index.js:865:18)
+    at Command._parseCommand (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/node_modules/commander/index.js:882:12)
+    at Command.parse (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/node_modules/commander/index.js:717:10)
+    at run (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/bin/docusaurus.js:319:7)
+    at Object.&lt;anonymous&gt; (/home/william/Documents/wpyoga/wpyoga.github.io/node_modules/@docusaurus/core/bin/docusaurus.js:326:1)
+    at Module._compile (internal/modules/cjs/loader.js:999:30)
+    at Object.Module._extensions..js (internal/modules/cjs/loader.js:1027:10)
+    at Module.load (internal/modules/cjs/loader.js:863:32)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+</code></pre><p>So we patch another file:</p><pre><code class="language-diff">--- ./node_modules/@docusaurus/core/lib/server/configValidation.js.orig 2021-06-12 12:41:58.223529946 +0700
++++ ./node_modules/@docusaurus/core/lib/server/configValidation.js  2021-06-12 12:42:10.131464512 +0700
+@@ -69,6 +69,7 @@
+         .default(exports.DEFAULT_CONFIG.onDuplicateRoutes),
+     organizationName: utils_validation_1.Joi.string().allow(&#x27;&#x27;),
+     projectName: utils_validation_1.Joi.string().allow(&#x27;&#x27;),
++    deploymentBranch: utils_validation_1.Joi.string().allow(&#x27;&#x27;),
+     customFields: utils_validation_1.Joi.object().unknown().default(exports.DEFAULT_CONFIG.customFields),
+     githubHost: utils_validation_1.Joi.string(),
+     plugins: utils_validation_1.Joi.array().items(PluginSchema).default(exports.DEFAULT_CONFIG.plugins),
+</code></pre><p>And now <code>yarn build</code> succeeds:</p><pre><code class="language-shell-session">$ yarn build
+yarn run v1.22.10
+$ docusaurus build
+
+[en] Creating an optimized production build...
+
+✔ Client
+  
+
+✔ Server
+  Compiled successfully in 9.46s
+
+
+✔ Client
+  
+
+● Server █████████████████████████ cache (99%) shutdown IdleFileCachePlugin
+ stored
+
+Success! Generated static files in build.
+
+Use `npm run serve` to test your build locally.
+
+Done in 12.32s.
+</code></pre><p>And <code>yarn deploy</code> also succeeds:</p><pre><code class="language-shell-session">$ yarn deploy
+yarn run v1.22.10
+$ docusaurus deploy
+Deploy command invoked ...
+git@github.com:wpyoga/wpyoga.github.io.git
+master
+organizationName: wpyoga
+projectName: wpyoga.github.io
+deploymentBranch: gh-pages
+Remote branch: git@github.com:wpyoga/wpyoga.github.io.git
+git@github.com:wpyoga/wpyoga.github.io.git
+77dc4151c656e3239bd9742f912a45db18bcb462
+CMD: git rev-parse HEAD (code=0)
+
+[en] Creating an optimized production build...
+
+✔ Client
+  
+
+✔ Server
+  Compiled successfully in 9.22s
+
+
+✔ Client
+  
+
+● Server █████████████████████████ cache (99%) shutdown IdleFileCachePlugin
+ stored
+
+Success! Generated static files in build.
+
+Use `npm run serve` to test your build locally.
+
+Cloning into &#x27;/tmp/wpyoga.github.io-gh-pagesSj6zQx&#x27;...
+CMD: git clone git@github.com:wpyoga/wpyoga.github.io.git /tmp/wpyoga.github.io-gh-pagesSj6zQx (code=0)
+master
+Note: switching to &#x27;origin/gh-pages&#x27;.
+
+You are in &#x27;detached HEAD&#x27; state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c &lt;new-branch-name&gt;
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at ab5aa5e Deploy website - based on 77dc4151c656e3239bd9742f912a45db18bcb462
+CMD: git checkout origin/gh-pages (code=0)
+Switched to a new branch &#x27;gh-pages&#x27;
+CMD: git checkout -b gh-pages (code=0)
+Branch &#x27;gh-pages&#x27; set up to track remote branch &#x27;gh-pages&#x27; from &#x27;origin&#x27;.
+CMD: git branch --set-upstream-to=origin/gh-pages (code=0)
+rm &#x27;.nojekyll&#x27;
+rm &#x27;404.html&#x27;
+rm &#x27;assets/css/styles.dc5e9681.css&#x27;
+rm &#x27;assets/images/docsVersionDropdown-dda80f009a926fb2dd92bab8faa6c4d8.png&#x27;
+rm &#x27;assets/images/localeDropdown-0052c3f08ccaf802ac733b23e655f498.png&#x27;
+rm &#x27;assets/js/01a85c17.b9dfffa7.js&#x27;
+rm &#x27;assets/js/0ae750d7.e3503f7e.js&#x27;
+rm &#x27;assets/js/0e384e19.ddf5b862.js&#x27;
+rm &#x27;assets/js/17896441.f57a37b4.js&#x27;
+rm &#x27;assets/js/18c41134.ec87b176.js&#x27;
+rm &#x27;assets/js/1be78505.2dfa4c90.js&#x27;
+rm &#x27;assets/js/1e4232ab.5b4de121.js&#x27;
+rm &#x27;assets/js/1f391b9e.2de59b39.js&#x27;
+rm &#x27;assets/js/393be207.8e037661.js&#x27;
+rm &#x27;assets/js/41215780.ae841bb1.js&#x27;
+rm &#x27;assets/js/486.57d4378a.js&#x27;
+rm &#x27;assets/js/486.57d4378a.js.LICENSE.txt&#x27;
+rm &#x27;assets/js/4bddfbdb.01575b48.js&#x27;
+rm &#x27;assets/js/50f28d20.45bef03f.js&#x27;
+rm &#x27;assets/js/533a09ca.48ff7b50.js&#x27;
+rm &#x27;assets/js/5c868d36.0d5626a9.js&#x27;
+rm &#x27;assets/js/608.4d5a0579.js&#x27;
+rm &#x27;assets/js/611.cf04f8c7.js&#x27;
+rm &#x27;assets/js/631037e5.846f9692.js&#x27;
+rm &#x27;assets/js/6422631d.05d2e755.js&#x27;
+rm &#x27;assets/js/6875c492.c165e8d1.js&#x27;
+rm &#x27;assets/js/796.2b4d523f.js&#x27;
+rm &#x27;assets/js/822bd8ab.16dcaaf8.js&#x27;
+rm &#x27;assets/js/935f2afb.721a68e8.js&#x27;
+rm &#x27;assets/js/9abc614d.1dedaf98.js&#x27;
+rm &#x27;assets/js/9dfd250b.026c9da7.js&#x27;
+rm &#x27;assets/js/a6aa9e1f.3d8aec90.js&#x27;
+rm &#x27;assets/js/a7023ddc.492f117e.js&#x27;
+rm &#x27;assets/js/a80da1cf.9fe763a5.js&#x27;
+rm &#x27;assets/js/b2b675dd.ebac9b0c.js&#x27;
+rm &#x27;assets/js/b85f0a39.51abaa96.js&#x27;
+rm &#x27;assets/js/bcafcfd6.24ddec43.js&#x27;
+rm &#x27;assets/js/c4f5d8e4.aa71182e.js&#x27;
+rm &#x27;assets/js/c623835b.36f855cd.js&#x27;
+rm &#x27;assets/js/ccc49370.08e8cf99.js&#x27;
+rm &#x27;assets/js/dff1c289.ae41d539.js&#x27;
+rm &#x27;assets/js/e44a2883.2df5a1b2.js&#x27;
+rm &#x27;assets/js/f55d3e7a.012746c9.js&#x27;
+rm &#x27;assets/js/fd7cafb0.62cfb1d0.js&#x27;
+rm &#x27;assets/js/main.2654cb24.js&#x27;
+rm &#x27;assets/js/main.2654cb24.js.LICENSE.txt&#x27;
+rm &#x27;assets/js/runtime~main.6059adcf.js&#x27;
+rm &#x27;blog/2021/05/08/inotifywait-problem/index.html&#x27;
+rm &#x27;blog/2021/06/12/docusaurus-install/index.html&#x27;
+rm &#x27;blog/atom.xml&#x27;
+rm &#x27;blog/index.html&#x27;
+rm &#x27;blog/rss.xml&#x27;
+rm &#x27;blog/tags/blog/index.html&#x27;
+rm &#x27;blog/tags/docusaurus/index.html&#x27;
+rm &#x27;blog/tags/index.html&#x27;
+rm &#x27;blog/tags/inotifywait/index.html&#x27;
+rm &#x27;blog/tags/maven/index.html&#x27;
+rm &#x27;blog/tags/vscode/index.html&#x27;
+rm &#x27;docs/hello/index.html&#x27;
+rm &#x27;docs/intro/index.html&#x27;
+rm &#x27;docs/tutorial-basics/congratulations/index.html&#x27;
+rm &#x27;docs/tutorial-basics/create-a-blog-post/index.html&#x27;
+rm &#x27;docs/tutorial-basics/create-a-document/index.html&#x27;
+rm &#x27;docs/tutorial-basics/create-a-page/index.html&#x27;
+rm &#x27;docs/tutorial-basics/deploy-your-site/index.html&#x27;
+rm &#x27;docs/tutorial-basics/markdown-features/index.html&#x27;
+rm &#x27;docs/tutorial-extras/manage-docs-versions/index.html&#x27;
+rm &#x27;docs/tutorial-extras/translate-your-site/index.html&#x27;
+rm &#x27;img/docusaurus.png&#x27;
+rm &#x27;img/favicon.ico&#x27;
+rm &#x27;img/logo.svg&#x27;
+rm &#x27;img/tutorial/docsVersionDropdown.png&#x27;
+rm &#x27;img/tutorial/localeDropdown.png&#x27;
+rm &#x27;img/undraw_docusaurus_mountain.svg&#x27;
+rm &#x27;img/undraw_docusaurus_react.svg&#x27;
+rm &#x27;img/undraw_docusaurus_tree.svg&#x27;
+rm &#x27;index.html&#x27;
+rm &#x27;markdown-page/index.html&#x27;
+rm &#x27;new-markdown-page/index.html&#x27;
+rm &#x27;new-react-page/index.html&#x27;
+rm &#x27;sitemap.xml&#x27;
+CMD: git rm -rf . (code=0)
+CMD: git add --all (code=0)
+[gh-pages 1d4c705] Deploy website - based on 77dc4151c656e3239bd9742f912a45db18bcb462
+ 46 files changed, 209 insertions(+), 131 deletions(-)
+ create mode 100644 assets/js/0ae750d7.36dc1408.js
+ delete mode 100644 assets/js/0ae750d7.e3503f7e.js
+ rename assets/js/{41215780.ae841bb1.js =&gt; 41215780.9cfec5e3.js} (82%)
+ rename assets/js/{631037e5.846f9692.js =&gt; 631037e5.a502de85.js} (75%)
+ rename assets/js/{a7023ddc.492f117e.js =&gt; a7023ddc.ca586d5f.js} (77%)
+ rename assets/js/{a80da1cf.9fe763a5.js =&gt; a80da1cf.6a3d81ae.js} (70%)
+ rename assets/js/{b2b675dd.ebac9b0c.js =&gt; b2b675dd.87aa17ab.js} (60%)
+ rename assets/js/{b85f0a39.51abaa96.js =&gt; b85f0a39.40fba475.js} (50%)
+ rename assets/js/{bcafcfd6.24ddec43.js =&gt; bcafcfd6.b73d2137.js} (63%)
+ create mode 100644 assets/js/e620ed35.d4befd8b.js
+ create mode 100644 assets/js/fba230db.cc24edfc.js
+ delete mode 100644 assets/js/fd7cafb0.62cfb1d0.js
+ create mode 100644 assets/js/fd7cafb0.6d8981c1.js
+ delete mode 100644 assets/js/main.2654cb24.js
+ create mode 100644 assets/js/main.72a8bb2f.js
+ rename assets/js/{main.2654cb24.js.LICENSE.txt =&gt; main.72a8bb2f.js.LICENSE.txt} (100%)
+ delete mode 100644 assets/js/runtime~main.6059adcf.js
+ create mode 100644 assets/js/runtime~main.e809c4a5.js
+ create mode 100644 blog/2021/06/12/docusaurus-deploy/index.html
+ rewrite blog/2021/06/12/docusaurus-install/index.html (76%)
+ rewrite sitemap.xml (74%)
+CMD: git commit -m &quot;Deploy website - based on 77dc4151c656e3239bd9742f912a45db18bcb462&quot; (code=0)
+To github.com:wpyoga/wpyoga.github.io.git
+   ab5aa5e..1d4c705  gh-pages -&gt; gh-pages
+CMD: git push --force origin gh-pages (code=0)
+Website is live at https://wpyoga.github.io/
+Done in 22.54s.
+</code></pre><p>Someday I will submit a proper patch to Docusaurus. Might also be a good way to start learning TypeScript (and JavaScript)!</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Making a new blog with Docusaurus v2]]></title>
+            <link>https://wpyoga.github.io/blog/2021/06/12/docusaurus-install</link>
+            <guid>/2021/06/12/docusaurus-install</guid>
+            <pubDate>Sat, 12 Jun 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[To make a new blog with the upcoming Docusaurus 2, we need understand how GitHub Pages works, and also pay attention to several caveats.]]></description>
+            <content:encoded><![CDATA[<p>To make a new blog with the upcoming Docusaurus 2, we need understand how GitHub Pages works, and also pay attention to several caveats.</p><h2>How GitHub Pages works and how to use it</h2><p>GitHub Pages sites serve its root as static content from a directory on a selected branch of the special repository <code>_username_.github.io</code> or <code>_organization_.github.io</code>. If there is an <code>index.html</code> file, then it will be used. Otherwise, <code>README.md</code> will be served -- but see <a href="#how-github-pages-really-works">this note</a>.</p><p>For example, I have the username <code>wpyoga</code> on GitHub. My GitHub Pages site is <code>wpyoga.github.io</code>, and it serves its root <code>https://wpyoga.github.io/</code> as static content from the <code>master</code> branch of the repository <code>wpyoga.github.io</code> in my account.</p><p>As of 2021-06-12, the special repository <code>_username_.github.io</code> defaults to serving GitHub Pages from the <code>master</code> branch, and other repositories default to serving from the <code>gh-pages</code> branch. This means that:</p><ul><li><p>on repositories other than the special repository, if you push to the <code>gh-pages</code> branch, and no branch has been configured to serve the GitHub Pages site, then GitHub will automatically designate the <code>gh-pages</code> branch for GitHub Pages, and serve the site from the repository&#x27;s root directory.</p></li><li><p>on the special repository, pushing to the <code>master</code> branch will trigger the same mechanism. Pushing to the <code>gh-pages</code> branch will not trigger this mechanism.</p></li></ul><p>Note that this designated branch contains the generated static content, not the raw Markdown and the sources. So if you use Docusaurus (or Jekyll) to generate the static site from Markdown documents, then the designated branch should not contain the sources, but only the generated (built) content. Docusaurus follows GitHub Pages&#x27; convention, so by default it will try to publish the generated content in the <code>build</code> directory of the source tree to the designated branch, according to the repository name.</p><p>However, my preferred method is to use the <code>master</code> branch for the source tree, and push my generated content to the <code>gh-pages</code> branch. Note that for the special repository, the <code>gh-pages</code> branch doesn&#x27;t trigger the automatic mechanism above, so I had to <a href="https://github.com/wpyoga/wpyoga.github.io/settings/branches">manually configure it</a>. Alternatively, you can also <a href="#following-github-conventions">follow GitHub conventions</a>.</p><h3>Deploy</h3><p><code>yarn deploy</code> will build and deploy the site:</p><pre><code class="language-shell-session">$ GIT_USER=wpyoga DEPLOYMENT_BRANCH=gh-pages USE_SSH=true yarn deploy
+</code></pre><p>It doesn&#x27;t look pretty, and it&#x27;s not easy to remember. Fortunately, I have <a href="/blog/2021/06/12/docusaurus-deploy">a better solution</a>.</p><h2>Further discussion</h2><h3>Manually deploying to a branch</h3><p>First, checkout the site serving branch (<code>gh-pages</code> in our example) to a temporary directory:</p><pre><code class="language-shell-session">$ git worktree add --no-checkout /tmp/build gh-pages
+</code></pre><p>Generate the site and copy it into the temporary directory:</p><pre><code class="language-shell-session">$ yarn build
+$ cp -rT build /tmp/build
+</code></pre><p>Notes:</p><ul><li>we cannot use <code>yarn build --out-dir /tmp/build</code> because this will remove the <code>.git</code> file inside that directory</li><li>with the <code>-T</code> option, <code>cp</code> copies the contents <code>build</code> directory into <code>/tmp/build</code>, as opposed to copying the <code>build</code> directory itself</li><li>there is a better way if you want to use a script, see the end of this section</li></ul><p>Push the files to GitHub:</p><pre><code class="language-shell-session">$ cd /tmp/build
+$ git add .
+$ git commit -m &quot;new build at $(date)&quot;
+$ git push
+$ cd -
+</code></pre><p>Remove the temporary directory:</p><pre><code class="language-shell-session">$ git worktree remove /tmp/build
+</code></pre><p>Here&#x27;s a script to automate the whole process:</p><pre><code class="language-shell">#!/bin/sh
+
+TMPDIR=&quot;$(mktemp -d tmp-XXXXX)&quot;
+TMPDIR2=&quot;$(mktemp -d tmp-XXXXX)&quot;
+
+git worktree add --force --no-checkout &quot;${TMPDIR}&quot; gh-pages
+
+mv &quot;${TMPDIR}/.git&quot; &quot;${TMPDIR2}&quot;
+yarn build --out-dir &quot;${TMPDIR}&quot;
+mv &quot;${TMPDIR2}/.git&quot; &quot;${TMPDIR}&quot;
+rmdir &quot;${TMPDIR2}&quot;
+
+(cd &quot;${TMPDIR}&quot;; git add .; git commit -m &quot;new build at $(date)&quot;; git push)
+
+ls &quot;${TMPDIR}&quot;
+git worktree remove &quot;${TMPDIR}&quot;
+</code></pre><p>Note: we use a custom template because there <a href="/blog/2021/06/13/possible-webpack-dirname-bug">might be a bug</a> that causes <code>yarn build</code> to fail.</p><h3>Another method of deploying manually doesn&#x27;t work well</h3><p>After building the site, push the <code>build</code> directory to a new <code>gh-pages</code> branch:</p><pre><code class="language-shell-session">$ git subtree split -P build -b gh-pages
+Created branch &#x27;gh-pages&#x27;
+d7d2eaa20128724d8234c817151c16d0931dec98
+$ git push origin gh-pages
+Enumerating objects: 117, done.
+Counting objects: 100% (117/117), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (83/83), done.
+Writing objects: 100% (117/117), 322.93 KiB | 1.02 MiB/s, done.
+Total 117 (delta 29), reused 54 (delta 8)
+remote: Resolving deltas: 100% (29/29), done.
+remote: 
+remote: Create a pull request for &#x27;gh-pages&#x27; on GitHub by visiting:
+remote:      https://github.com/wpyoga/wpyoga.github.io/pull/new/gh-pages
+remote: 
+To github.com:wpyoga/wpyoga.github.io.git
+ * [new branch]      gh-pages -&gt; gh-pages
+</code></pre><p>Because this repository is the special <code>_username_.github.io</code> repository, GitHub doesn&#x27;t treat the <code>gh-pages</code> branch here as being special. So I need to <a href="https://github.com/wpyoga/wpyoga.github.io/settings/pages">manually specify</a> the <code>gh-pages</code> branch to serve the site root.</p><p>The problem is, now I cannot update the <code>gh-pages</code> branch. I need to read Docusaurus&#x27; source code in <code>lib/deploy.ts</code> and see how they manage to make <code>yarn deploy</code> work. Looking at the log output, it seems that Docusaurus clones the <code>gh-pages</code> branch to a temporary location, deletes everything, overwrites the content with new files, and then pushes the changes back to the remote branch.</p><h3>How GitHub Pages really works</h3><p>I&#x27;m not 100% sure how it works.</p><p>Docusaurus mentions that <a href="https://docusaurus.io/docs/deployment#deploying-to-github-pages">GitHub will run the generated files through Jekyll</a>, so a <code>.nojekyll</code> file is added to each directory, to prevent the removal of files whose names have a leading <code>_</code> (underscore).</p><p>I&#x27;ve also tried messing around with the designated repository, renaming index.html and adding README.md, but the Docusaurus site is still being served (a &quot;page not found&quot; message can be seen upon initial loading, but then disappears after a split second).</p><p>Since this is a static site, index.php is not served (at all).</p><h3>Serving GitHub Pages from a subdirectory</h3><p>We can actually use a single branch for both the source code and generated content -- GitHub allows us to specify the <code>/docs</code> subdirectory as the content location. However, this is not easily adaptable to Docusaurus, where <code>docs</code> stores Markdown files, and the generated content is actually in <code>build</code>.</p><p>Unfortunately, as of 2021-06-12, GitHub doesn&#x27;t allow the use of any other subdirectory for this purpose.</p><h3>Following GitHub conventions</h3><p>For the special repository, following GitHub&#x27;s conventions is somewhat counterintuitive. You would usually have the source code in the <code>master</code> branch, and in this case you cannot deploy to the <code>master</code> branch since it will overwrite all the source code. In this case, the solution is to move the source code to another branch, say <code>source</code>, work on that branch, and deploy to the <code>master</code> branch.</p><p>I pushed the source code from the <code>master</code> branch to the <code>source</code> branch.</p><pre><code class="language-shell-session">$ git branch source
+$ git push --set-upstream origin source
+</code></pre><p>Then I would need to delete the <code>master</code> branch. The problem is, GitHub didn&#x27;t want to delete the <code>master</code> branch:</p><pre><code class="language-shell-session">$ git push --delete origin master
+To github.com:wpyoga/wpyoga.github.io.git
+ ! [remote rejected] master (refusing to delete the current branch: refs/heads/master)
+error: failed to push some refs to &#x27;git@github.com:wpyoga/wpyoga.github.io.git&#x27;
+</code></pre><p>It turns out that GitHub just doesn&#x27;t want to delete the default branch. Note that this concept of &quot;default branch&quot; is not from git, but rather from GitHub.</p><p>Anyway, I changed the <a href="https://github.com/wpyoga/wpyoga.github.io/settings/branches">default branch</a> to <code>source</code> for now, and now I can delete the <code>master</code> branch:</p><pre><code class="language-shell-session">$ git push --delete origin master
+To github.com:wpyoga/wpyoga.github.io.git
+ - [deleted]         master
+</code></pre><p>Now, <code>yarn deploy</code> will push the generated content to the <code>master</code> branch of the special repository.</p><h3>Moving source code back to the master branch</h3><p>After I moved the source code from the <code>master</code> branch to the <code>source</code> branch, I found out that I can actually deploy to another branch instead.
+So I wanted to move the source code back to the <code>master</code> branch.</p><p>I deleted the <code>master</code> branch, renamed the <code>source</code> branch to <code>master</code>, and then pushed the changes:</p><pre><code class="language-shell-session">$ git branch -D master
+Deleted branch master (was 67c2b46).
+$ git branch -m source master
+$ git status
+On branch master
+Your branch is up to date with &#x27;origin/source&#x27;.
+$ git push origin HEAD
+Total 0 (delta 0), reused 0 (delta 0)
+remote: 
+remote: Create a pull request for &#x27;master&#x27; on GitHub by visiting:
+remote:      https://github.com/wpyoga/wpyoga.github.io/pull/new/master
+remote: 
+To github.com:wpyoga/wpyoga.github.io.git
+ * [new branch]      HEAD -&gt; master
+</code></pre><p>At this point the <code>source</code> branch was useless, so I changed the default branch to <code>master</code> again (on GitHub), then deleted the remote <code>source</code> branch:</p><pre><code class="language-shell-session">$ git push --delete origin source
+To github.com:wpyoga/wpyoga.github.io.git
+ - [deleted]         source
+</code></pre><p>At this point the remote branch has been deleted, but the local repo still references the old one:</p><pre><code class="language-shell-session">$ git status
+On branch master
+Your branch is based on &#x27;origin/source&#x27;, but the upstream is gone.
+  (use &quot;git branch --unset-upstream&quot; to fixup)
+</code></pre><p>So I dutifully followed the recommendations:</p><pre><code class="language-shell-session">$ git branch --unset-upstream
+$ git push --set-upstream origin master
+Branch &#x27;master&#x27; set up to track remote branch &#x27;master&#x27; from &#x27;origin&#x27;.
+Everything up-to-date
+$ git status
+On branch master
+Your branch is up to date with &#x27;origin/master&#x27;.
+</code></pre><h3>Changing usernames or organization names</h3><p>I used to have the username <code>wpyh</code>, but I changed it a few weeks ago.</p><p>When I had the username <code>wpyh</code>, if I had created a repository named <code>wpyh.github.io</code>, then GitHub would have made a subdomain for me: <code>wpyh.github.io</code>. This is a special repo, which serves as the source of the GitHub Pages site hosted at <code>wpyh.github.io</code> from its <code>main</code> branch by default.</p><p>When I changed my username from <code>wpyh</code> to <code>wpyoga</code>, I would have had to rename the aforementioned repository to <code>wpyoga.github.io</code>. GitHub would have changed the custom subdomain to <code>wpyoga.github.io</code>, and the old custom subdomain would have been deleted.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Problem with inotifywait, VSCode, and Maven]]></title>
+            <link>https://wpyoga.github.io/blog/2021/05/08/inotifywait-problem</link>
+            <guid>/2021/05/08/inotifywait-problem</guid>
+            <pubDate>Sat, 08 May 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[When doing some Java development on VSCode, I wanted to use inotifywait to watch for source file changes and automatically build the project when a source file is changed.]]></description>
+            <content:encoded><![CDATA[<p>When doing some Java development on VSCode, I wanted to use inotifywait to watch for source file changes and automatically build the project when a source file is changed.</p><p>It seemed like a neat and simple idea. However, as soon as I set up inotifywait to watch the source directory, I ran into problems and had to abandon the idea (for the time being).</p><p>So the project is built using Maven. The problems are:</p><ul><li><p>VSCode cannot resolve source package files: the IDE shows errors on imports from source packages inside the source tree. Imports from the Java library work fine though.</p></li><li><p>Maven doesn&#x27;t build source package files: the produced jar file doesn&#x27;t contain the class files anymore.</p></li></ul><p>It&#x27;s like the files just went missing -- what did inotifywait do to cause this problem? Reading the manpage, it seems that inotifywait does little more than put inotify(7) watches recursively on the <code>src</code> directory.</p>]]></content:encoded>
+        </item>
+    </channel>
+</rss>
