@@ -39,7 +39,7 @@ So I googled a bit and found [this](https://unix.stackexchange.com/questions/260
 $ sudo bpftrace -e 'tracepoint:syscalls:sys_enter_exec*{ printf("pid: %d, comm: %s, args: ", pid, comm); join(args->argv); }'
 ```
 
-:::warn
+:::warning
 DO NOT copy solutions blindly from StackOverflow / Google / etc. Understand what it does first, then adapt it or use it accordingly.
 :::
 
