@@ -20,7 +20,7 @@ First, we prepare these tools:
 - a bootable Windows 10 installer
 
 :::tip
-For the Linux live ISO and the Windows 10 installer, use [Ventoy](ventoy.net). Then you can have both on one single USB stick.
+For the Linux live ISO and the Windows 10 installer, use [Ventoy](https://ventoy.net). Then you can have both on one single USB stick.
 :::
 
 We remove the existing HDD, and then install the new SSD inside the laptop. This is usually done together with a RAM upgrade, because RAM is relatively cheap nowadays.
