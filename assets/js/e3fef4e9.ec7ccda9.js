@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[9107],{9579:function(s){s.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"/blog/tags/mouse","name":"mouse","count":1,"permalink":"/blog/tags/mouse"}')}}]);

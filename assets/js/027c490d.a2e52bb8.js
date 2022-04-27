@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[8900],{8788:function(a){a.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"/blog/tags/thinkpad","name":"thinkpad","count":3,"permalink":"/blog/tags/thinkpad"}')}}]);
