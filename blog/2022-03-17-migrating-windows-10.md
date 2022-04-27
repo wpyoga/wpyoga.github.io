@@ -19,6 +19,10 @@ First, we prepare these tools:
 - a bootable Linux live ISO
 - a bootable Windows 10 installer
 
+:::warn
+If the original Windows 10 installation is 32-bit, then you have to use a 32-bit Windows 10 installer for the last step.
+:::
+
 :::tip
 For the Linux live ISO and the Windows 10 installer, use [Ventoy](https://ventoy.net). Then you can have both on one single USB stick.
 :::
