@@ -14,7 +14,7 @@ The latest release of Linux Mint (20.3) is still based on Ubuntu 20.04 LTS, not 
 The installation in quite straightforward:
 
 ```shell-session
-$ sudo apt install linux-image-oem-20.04 linux-headers-oem-20.04
+$ sudo apt install linux-oem-20.04
 ```
 
 After installation, I rebooted the laptop and chose the corresponding kernel on the boot menu.
@@ -24,8 +24,7 @@ After installation, I rebooted the laptop and chose the corresponding kernel on 
 I then checked that nothing is badly broken, and proceeded to remove the older kernels:
 
 ```shell-session
-$ sudo apt purge --autoremove linux-generic-hwe-20.04 
-$ sudo apt purge --autoremove linux-*-5.4.* linux-*-5.13.*
+$ sudo apt purge --autoremove linux-*-5.4.*
 ```
 
 # Note when upgrading to the next Linux Mint version
