@@ -24,6 +24,12 @@ This works on Ubuntu-based distros. For Fedora, since the psmouse module is actu
 psmouse.proto=imps
 ```
 
+In order to apply it on boot, create the file `/etc/default/grub.d/99_trackpoint.cfg`:
+
+```sh
+GRUB_CMDLINE_LINUX="psmouse.proto=imps"
+```
+
 After applying this workaround, the polling rate goes up to about 80 Hz. However, there are two issues:
 - Pointer movement is now too slow
 - The TouchPad doesn't work at all
@@ -38,13 +44,24 @@ In order to speed up the pointer movement, we can use a Coordinate Transformatio
 - https://wiki.ubuntu.com/X/InputCoordinateTransformation
 
 You can play around with the matrix values, but this works best for me:
+
 ```shell-session
-xinput set-prop 'PS/2 Synaptics TouchPad' 'Coordinate Transformation Matrix' 3 0 0 0 3 0 0 0 1
+xinput set-prop 'PS/2 Synaptics TouchPad' 'Coordinate Transformation Matrix' 3.5 0 0 0 3.5 0 0 0 1
 ```
 
 Then, open the XFCE mouse settings and adjust the Acceleration settings. For me, `3.0` gives me the best results.
 
 The numbers above may vary between ThinkPad models, and even between different TrackPoint brands within the same model.
+
+To make it permanent, create the file `/etc/X11/xorg.conf.d/99-trackpoint.conf`:
+
+```
+Section "InputClass"
+	Identifier "TrackPoint"
+	MatchProduct "PS/2 Synaptics TouchPad"
+	Option "TransformationMatrix" "3.5 0 0 0 3.5 0 0 0 1"
+EndSection
+```
 
 # Notes
 
