@@ -4,18 +4,85 @@
         <title>William's GitHub Pages Blog</title>
         <link>https://wpyoga.github.io/blog</link>
         <description>William's GitHub Pages Blog</description>
-        <lastBuildDate>Wed, 27 Apr 2022 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 10 May 2022 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
+        <item>
+            <title><![CDATA[Hiding Ventoy's second partition]]></title>
+            <link>https://wpyoga.github.io/blog/2022/05/10/hiding-ventoy-second-partition</link>
+            <guid>/2022/05/10/hiding-ventoy-second-partition</guid>
+            <pubDate>Tue, 10 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[When we install Ventoy on a USB stick, it creates 2 partitions: Ventoy and VTOYEFI. We put ISO images into the Ventoy partition, but rarely, if ever, touch the VTOYEFI partition. However, both partitions are mounted every time the USB stick is inserted, be it in Windows or in Linux. My goal is to disable this behaviour, while making sure the USB stick is still fully functional.]]></description>
+            <content:encoded><![CDATA[<p>When we install Ventoy on a USB stick, it creates 2 partitions: Ventoy and VTOYEFI. We put ISO images into the Ventoy partition, but rarely, if ever, touch the VTOYEFI partition. However, both partitions are mounted every time the USB stick is inserted, be it in Windows or in Linux. My goal is to disable this behaviour, while making sure the USB stick is still fully functional.</p><h1>Partition structure</h1><p>The partitions created by Ventoy look like this:</p><pre><code>Disk /dev/sdb: 57.31 GiB, 61530439680 bytes, 120176640 sectors
+Disk model:  SanDisk 3.2Gen1
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: A59926BF-48A9-4C4E-8243-F2AD5921CDC2
+
+Device         Start       End   Sectors  Size Type
+/dev/sdb1       2048 120111063 120109016 57.3G Microsoft basic data
+/dev/sdb2  120111064 120176599     65536   32M Microsoft basic data
+</code></pre><p><code>/dev/sdb1</code> is the bigger Ventoy partition, and <code>/dev/sdb2</code> is the smaller VTOYEFI partition.</p><h1>Solution</h1><p>The solution turns out to be somewhat simple: change the VTOYEFI partition&#x27;s type to &quot;Windows recovery environment&quot;. This can be done using <code>fdisk</code>:</p><pre><code>Welcome to fdisk (util-linux 2.34).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+
+Command (m for help): p
+Disk /dev/sdb: 57.31 GiB, 61530439680 bytes, 120176640 sectors
+Disk model:  SanDisk 3.2Gen1
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: A59926BF-48A9-4C4E-8243-F2AD5921CDC2
+
+Device         Start       End   Sectors  Size Type
+/dev/sdb1       2048 120111063 120109016 57.3G Microsoft basic data
+/dev/sdb2  120111064 120176599     65536   32M Microsoft basic data
+
+Command (m for help): t
+Partition number (1,2, default 2): 2
+Partition type (type L to list all types): 14
+
+Changed type of partition &#x27;Microsoft basic data&#x27; to &#x27;Windows recovery environment&#x27;.
+
+Command (m for help): w
+The partition table has been altered.
+Syncing disks.
+</code></pre><p>:::note
+You can type <code>L</code> when prompted, to see all the different partition types:</p><pre><code>  1 EFI System                     C12A7328-F81F-11D2-BA4B-00A0C93EC93B
+  2 MBR partition scheme           024DEE41-33E7-11D3-9D69-0008C781F39F
+  3 Intel Fast Flash               D3BFE2DE-3DAF-11DF-BA40-E3A556D89593
+  4 BIOS boot                      21686148-6449-6E6F-744E-656564454649
+  5 Sony boot partition            F4019732-066E-4E12-8273-346C5641494F
+  6 Lenovo boot partition          BFBFAFE7-A34F-448A-9A5B-6213EB736C22
+  7 PowerPC PReP boot              9E1A2D38-C612-4316-AA26-8B49521E5A8B
+  8 ONIE boot                      7412F7D5-A156-4B13-81DC-867174929325
+  9 ONIE config                    D4E6E2CD-4469-46F3-B5CB-1BFF57AFC149
+ 10 Microsoft reserved             E3C9E316-0B5C-4DB8-817D-F92DF00215AE
+ 11 Microsoft basic data           EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+ 12 Microsoft LDM metadata         5808C8AA-7E8F-42E0-85D2-E1E90434CFB3
+ 13 Microsoft LDM data             AF9B60A0-1431-4F62-BC68-3311714A69AD
+ 14 Windows recovery environment   DE94BBA4-06D1-4D40-A16A-BFD50179D6AC
+ 15 IBM General Parallel Fs        37AFFC90-EF7D-4E96-91C3-2D7AE055B174
+ 16 Microsoft Storage Spaces       E75CAF8F-F680-4CEE-AFA3-B001E56EFC2D
+ 17 HP-UX data                     75894C1E-3AEB-11D3-B7C1-7B03A0000000
+ 18 HP-UX service                  E2A1E728-32E3-11D6-A682-7B03A0000000
+ 19 Linux swap                     0657FD6D-A4AB-43C4-84E5-0933C84B4F4F
+ 20 Linux filesystem               0FC63DAF-8483-4772-8E79-3D69D8477DE4
+ ...
+</code></pre><p>:::</p><h1>Non-suitable partition types for VTOYEFI</h1><h2>EFI System</h2><p>If we use this partition type, Windows 10 installation cannot proceed. Just after copying initial files, the installer will abort with the error &quot;Windows could not prepare the computer to boot into the next phase of installation.&quot;</p><h2>Microsoft reserved</h2><p>Using this partition type, the VTOYEFI partition is not mounted on Linux, but it is still mounted on Windows and shows up on This PC (My Computer). The weird thing is, Disk Management does not show this partition at all.</p>]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Linux Mint OEM Kernel]]></title>
             <link>https://wpyoga.github.io/blog/2022/04/27/linux-mint-oem-kernel</link>
             <guid>/2022/04/27/linux-mint-oem-kernel</guid>
             <pubDate>Wed, 27 Apr 2022 00:00:00 GMT</pubDate>
             <description><![CDATA[The ThinkPad T14 Gen 1 AMD was released in 2020, and it is actually one of the newest / youngest laptops I ever had. Since I am using Linux Mint, which is based on Ubuntu LTS, the kernel is relatively old and I realized that I need to update to a new kernel if I want to have good hardware compatibility.]]></description>
-            <content:encoded><![CDATA[<p>The ThinkPad T14 Gen 1 AMD was released in 2020, and it is actually one of the newest / youngest laptops I ever had. Since I am using Linux Mint, which is based on Ubuntu LTS, the kernel is relatively old and I realized that I need to update to a new kernel if I want to have good hardware compatibility.</p><p>The latest release of Linux Mint (20.3) is still based on Ubuntu 20.04 LTS, not Ubuntu 22.04 LTS which was just released -- usually Linux Mint will get a new release a few months after the Ubuntu LTS release. Therefore, I&#x27;m upgrading to the latest kernel available in the Ubuntu 20.04 repositories.</p><h1>Install the OEM kernel</h1><p>The installation in quite straightforward:</p><pre><code class="language-shell-session">$ sudo apt install linux-image-oem-20.04 linux-headers-oem-20.04
-</code></pre><p>After installation, I rebooted the laptop and chose the corresponding kernel on the boot menu.</p><h1>Remove the other kernels</h1><p>I then checked that nothing is badly broken, and proceeded to remove the older kernels:</p><pre><code class="language-shell-session">$ sudo apt purge --autoremove linux-generic-hwe-20.04 
-$ sudo apt purge --autoremove linux-*-5.4.* linux-*-5.13.*
+            <content:encoded><![CDATA[<p>The ThinkPad T14 Gen 1 AMD was released in 2020, and it is actually one of the newest / youngest laptops I ever had. Since I am using Linux Mint, which is based on Ubuntu LTS, the kernel is relatively old and I realized that I need to update to a new kernel if I want to have good hardware compatibility.</p><p>The latest release of Linux Mint (20.3) is still based on Ubuntu 20.04 LTS, not Ubuntu 22.04 LTS which was just released -- usually Linux Mint will get a new release a few months after the Ubuntu LTS release. Therefore, I&#x27;m upgrading to the latest kernel available in the Ubuntu 20.04 repositories.</p><h1>Install the OEM kernel</h1><p>The installation in quite straightforward:</p><pre><code class="language-shell-session">$ sudo apt install linux-oem-20.04
+</code></pre><p>After installation, I rebooted the laptop and chose the corresponding kernel on the boot menu.</p><h1>Remove the other kernels</h1><p>I then checked that nothing is badly broken, and proceeded to remove the older kernels:</p><pre><code class="language-shell-session">$ sudo apt purge --autoremove linux-*-5.4.*
 </code></pre><h1>Note when upgrading to the next Linux Mint version</h1><p>When I eventually upgrade to the next Linux Mint version, I think I would need to install the regular kernel packages again.</p>]]></content:encoded>
         </item>
         <item>
@@ -27,8 +94,14 @@ $ sudo apt purge --autoremove linux-*-5.4.* linux-*-5.13.*
             <content:encoded><![CDATA[<p>On the ThinkPad T14, the TrackPoint does not work so well in Linux. Pointer movement is choppy and is just not smooth overall. When debugged using <code>libinput debug-events</code>, we can see that the polling rate is only about 30 Hz.</p><p>However, there is a workaround.</p><h1>Workaround</h1><p>The trick is to reload the <code>psmouse</code> module, and <a href="https://forums.lenovo.com/t5/Fedora/T14s-AMD-Trackpoint-almost-unusable/m-p/5064952?page=5#5494798">force it</a> to use the ImPS/2 protocol.</p><pre><code class="language-shell-session">$ sudo rmmod psmouse
 $ sudo modprobe psmouse proto=imps
 </code></pre><p>This works on Ubuntu-based distros. For Fedora, since the psmouse module is actually built into the kernel, the <code>proto</code> parameter has to be passed on boot, appended to the Linux kernel command line:</p><pre><code class="language-shell-session">psmouse.proto=imps
-</code></pre><p>After applying this workaround, the polling rate goes up to about 80 Hz. However, there are two issues:</p><ul><li>Pointer movement is now too slow</li><li>The TouchPad doesn&#x27;t work at all</li></ul><p>I don&#x27;t use the TouchPad, so it&#x27;s not an issue for me. The slow pointer movement can be alleviated somewhat.</p><h1>Speed up pointer movement</h1><p>In order to speed up the pointer movement, we can use a Coordinate Transformation Matrix:</p><ul><li><a href="https://askubuntu.com/a/1308058">https://askubuntu.com/a/1308058</a></li><li><a href="https://unix.stackexchange.com/a/177640">https://unix.stackexchange.com/a/177640</a></li><li><a href="https://wiki.ubuntu.com/X/InputCoordinateTransformation">https://wiki.ubuntu.com/X/InputCoordinateTransformation</a></li></ul><p>You can play around with the matrix values, but this works best for me:</p><pre><code class="language-shell-session">xinput set-prop &#x27;PS/2 Synaptics TouchPad&#x27; &#x27;Coordinate Transformation Matrix&#x27; 3 0 0 0 3 0 0 0 1
-</code></pre><p>Then, open the XFCE mouse settings and adjust the Acceleration settings. For me, <code>3.0</code> gives me the best results.</p><p>The numbers above may vary between ThinkPad models, and even between different TrackPoint brands within the same model.</p><h1>Notes</h1><p>On older ThinkPads, setting the <code>rate</code>, <code>speed</code>, and <code>sensitivity</code> via sysfs works. However, it doesn&#x27;t work on the T14.</p><h1>TODO</h1><p>The above is just a workaround, and you can even call it a kludge.</p><p>The proper fix might be two-fold:</p><ul><li>Fix the psmouse driver to recognize and work around the faulty TrackPoint</li><li>Implement <a href="https://gitlab.freedesktop.org/libinput/libinput/-/issues/281">constant scale factor</a> for libinput</li></ul><p>Note:</p><ul><li>This might be related to the fact that the T450s TrackPoint <a href="https://www.reddit.com/r/thinkpad/comments/fmt09q/trackpad_sometimes_interferes_with_trackpoint/">sometimes stutters</a></li></ul>]]></content:encoded>
+</code></pre><p>In order to apply it on boot, create the file <code>/etc/default/grub.d/99_trackpoint.cfg</code>:</p><pre><code class="language-sh">GRUB_CMDLINE_LINUX=&quot;psmouse.proto=imps&quot;
+</code></pre><p>After applying this workaround, the polling rate goes up to about 80 Hz. However, there are two issues:</p><ul><li>Pointer movement is now too slow</li><li>The TouchPad doesn&#x27;t work at all</li></ul><p>I don&#x27;t use the TouchPad, so it&#x27;s not an issue for me. The slow pointer movement can be alleviated somewhat.</p><h1>Speed up pointer movement</h1><p>In order to speed up the pointer movement, we can use a Coordinate Transformation Matrix:</p><ul><li><a href="https://askubuntu.com/a/1308058">https://askubuntu.com/a/1308058</a></li><li><a href="https://unix.stackexchange.com/a/177640">https://unix.stackexchange.com/a/177640</a></li><li><a href="https://wiki.ubuntu.com/X/InputCoordinateTransformation">https://wiki.ubuntu.com/X/InputCoordinateTransformation</a></li></ul><p>You can play around with the matrix values, but this works best for me:</p><pre><code class="language-shell-session">xinput set-prop &#x27;PS/2 Synaptics TouchPad&#x27; &#x27;Coordinate Transformation Matrix&#x27; 3.5 0 0 0 3.5 0 0 0 1
+</code></pre><p>Then, open the XFCE mouse settings and adjust the Acceleration settings. For me, <code>3.0</code> gives me the best results.</p><p>The numbers above may vary between ThinkPad models, and even between different TrackPoint brands within the same model.</p><p>To make it permanent, create the file <code>/etc/X11/xorg.conf.d/99-trackpoint.conf</code>:</p><pre><code>Section &quot;InputClass&quot;
+    Identifier &quot;TrackPoint&quot;
+    MatchProduct &quot;PS/2 Synaptics TouchPad&quot;
+    Option &quot;TransformationMatrix&quot; &quot;3.5 0 0 0 3.5 0 0 0 1&quot;
+EndSection
+</code></pre><h1>Notes</h1><p>On older ThinkPads, setting the <code>rate</code>, <code>speed</code>, and <code>sensitivity</code> via sysfs works. However, it doesn&#x27;t work on the T14.</p><h1>TODO</h1><p>The above is just a workaround, and you can even call it a kludge.</p><p>The proper fix might be two-fold:</p><ul><li>Fix the psmouse driver to recognize and work around the faulty TrackPoint</li><li>Implement <a href="https://gitlab.freedesktop.org/libinput/libinput/-/issues/281">constant scale factor</a> for libinput</li></ul><p>Note:</p><ul><li>This might be related to the fact that the T450s TrackPoint <a href="https://www.reddit.com/r/thinkpad/comments/fmt09q/trackpad_sometimes_interferes_with_trackpoint/">sometimes stutters</a></li></ul>]]></content:encoded>
         </item>
         <item>
             <title><![CDATA[ThinkPad T14]]></title>
@@ -36,7 +109,7 @@ $ sudo modprobe psmouse proto=imps
             <guid>/2022/04/27/thinkpad-t14</guid>
             <pubDate>Wed, 27 Apr 2022 00:00:00 GMT</pubDate>
             <description><![CDATA[I just got a ThinkPad T14 Gen 1 AMD.]]></description>
-            <content:encoded><![CDATA[<p>I just got a ThinkPad T14 Gen 1 AMD.</p><h1>Issues</h1><ul><li>Sleep mode drains the battery<ul><li>The T14 has S0ix (&quot;Windows&quot;) and S3 (&quot;Linux&quot;) sleep modes</li><li>S3 sleep drains more power than S0ix</li></ul></li><li>Sleep mode sometimes doesn&#x27;t work<ul><li>This seems to be a kernel version problem, and also a distro problem</li><li>Sometimes the laptop does not go to sleep, even if the lid is closed</li></ul></li><li>Waking up from sleep takes ~10 seconds<ul><li>Waking up from sleep is instantaneous on Windows </li></ul></li><li>TrackPoint stutters</li><li>Screen ghosting / burn-in<ul><li>Only visible on a gray screen</li></ul></li><li>Edges of the palmrest are sharp, unlike previous ThinkPads where the palmrest edges are slightly curved</li></ul><h1>Improvements over previous ThinkPads</h1><ul><li>Battery charge control now works by firmware<ul><li>works without booting into the system</li><li>can be configured under <code>/sys/class/power_supply/BAT0</code>:<ul><li><code>charge_control_end_threshold</code></li><li><code>charge_control_start_threshold</code></li></ul></li></ul></li><li>Thinner and lighter</li></ul>]]></content:encoded>
+            <content:encoded><![CDATA[<p>I just got a ThinkPad T14 Gen 1 AMD.</p><h1>Issues</h1><ul><li>Sleep mode drains the battery<ul><li>The T14 has S0ix (&quot;Windows&quot;) and S3 (&quot;Linux&quot;) sleep modes</li><li>S3 sleep drains more power than S0ix (<strong>Fixed in UEFI Firmware 1.40</strong>)</li></ul></li><li>Sleep mode sometimes doesn&#x27;t work<ul><li>This seems to be a kernel version problem (<strong>Fixed in kernel 5.14</strong>)</li><li>Sometimes the laptop does not go to sleep, even if the lid is closed, this seems to be a distro / power management problem</li></ul></li><li>Waking up from S0ix sleep takes ~10 seconds<ul><li>Waking up from sleep is instantaneous on Windows</li><li>Waking up from S3 sleep with UEFI Firmware 1.40 and kernel 5.14 is instantaneous</li></ul></li><li>TrackPoint stutters<ul><li>There is a workaround</li></ul></li><li>Screen ghosting / burn-in<ul><li>Only visible on a gray screen</li></ul></li><li>Edges of the palmrest are sharp, unlike previous ThinkPads where the palmrest edges are slightly curved</li></ul><h1>Improvements over previous ThinkPads</h1><ul><li>Battery charge control now works by firmware<ul><li>works without booting into the system</li><li>can be configured under <code>/sys/class/power_supply/BAT0</code>:<ul><li><code>charge_control_end_threshold</code></li><li><code>charge_control_start_threshold</code></li></ul></li></ul></li><li>Thinner and lighter</li></ul>]]></content:encoded>
         </item>
         <item>
             <title><![CDATA[Migrating Windows 10 from HDD to SSD using Linux]]></title>
