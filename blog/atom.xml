@@ -2,11 +2,41 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://wpyoga.github.io/blog</id>
     <title>William's GitHub Pages Blog</title>
-    <updated>2022-05-10T00:00:00.000Z</updated>
+    <updated>2022-11-05T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://wpyoga.github.io/blog"/>
     <subtitle>William's GitHub Pages Blog</subtitle>
     <icon>https://wpyoga.github.io/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[Installing Nextcloud AIO on Docker]]></title>
+        <id>/2022/11/05/installing-nextcloud-aio-docker</id>
+        <link href="https://wpyoga.github.io/blog/2022/11/05/installing-nextcloud-aio-docker"/>
+        <updated>2022-11-05T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[I'm trying out self-hosted collaboration platforms. This time, I'm installing Nextcloud AIO on Docker. I'm using Caddy as a reverse proxy, because there will be multiple sites on the same server.]]></summary>
+        <content type="html"><![CDATA[<p>I&#x27;m trying out self-hosted collaboration platforms. This time, I&#x27;m installing Nextcloud AIO on Docker. I&#x27;m using Caddy as a reverse proxy, because there will be multiple sites on the same server.</p><h1>Installing Docker</h1><p>This is the first time I&#x27;m installing docker, so I roughly followed the steps outlined here on <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04">DigitalOcean</a>.</p><pre><code class="language-console"># curl https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/trusted.gpg.d/docker.asc
+# echo &quot;deb https://download.docker.com/linux/ubuntu jammy stable&quot; &gt; /etc/apt/sources.list.d/docker.list
+# apt update
+# apt install docker-ce
+# usermod -a -G docker wpyoga
+</code></pre><h1>Installing Nextcloud AIO</h1><p>Then I roughly followed the steps outlined here on <a href="https://github.com/nextcloud/all-in-one/blob/main/reverse-proxy.md">Github</a>.</p><pre><code class="language-console">$ docker run -d \
+  --restart always \
+  --sig-proxy=false \
+  --publish 127.0.0.1:8080:8080 \
+  -e APACHE_IP_BINDING=127.0.0.1 \
+  -e APACHE_PORT=11000 \
+  --name nextcloud-aio-mastercontainer \
+  --volume nextcloud_aio_mastercontainer:/mnt/docker-aio-config \
+  --volume /var/run/docker.sock:/var/run/docker.sock:ro \
+  nextcloud/all-in-one:latest
+</code></pre><p>If you didn&#x27;t do it right, remove the container and re-create it again. This is one of the quirks of Docker... container configuration is &quot;immutable&quot;.</p><h1>Nextcloud initial set up</h1><p>After the initial docker container is up and running, I set up a tunnel in order to access the configuration interface on <code>localhost:8080</code>:</p><pre><code class="language-console">$ ssh my-server -L 8080:127.0.0.1:8080
+</code></pre><p>The configuration interface is easy to follow, and I enabled all the available services.</p><h1>Caddy set up</h1><p>This is the configuration for the reverse proxy in <code>/etc/caddy/Caddyfile</code>:</p><pre><code>example.com {
+    reverse_proxy 127.0.0.1:11000
+}
+</code></pre><p>Caddy can be configured to use multiple upstream servers if needed.</p><p>To disable http, I also added this global configuration block right at the beginning of the file:</p><pre><code>{
+    auto_https disable_redirects
+}
+</code></pre>]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Hiding Ventoy's second partition]]></title>
         <id>/2022/05/10/hiding-ventoy-second-partition</id>
@@ -165,115 +195,6 @@ dbus-send \
 </code></pre>]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[Libvirt Networking Configuration]]></title>
-        <id>/2022/01/27/libvirt-networking</id>
-        <link href="https://wpyoga.github.io/blog/2022/01/27/libvirt-networking"/>
-        <updated>2022-01-27T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[If you use a wireless adapter on your VM host, libvirt networking is complicated. We have 3 options:]]></summary>
-        <content type="html"><![CDATA[<p>If you use a wireless adapter on your VM host, libvirt networking is complicated. We have 3 options:</p><ul><li>Bridged (with parprouted)</li><li>Routed</li><li>NAT (the default)</li></ul><h2>Bridged</h2><p>In this scenario, the virtual machines appear as &quot;real&quot; nodes in the local network. Using wired connections (Ethernet) it&#x27;s very easy to set up. However, due to <a href="https://superuser.com/a/1009881">the way wireless networks work</a>, bridging becomes a bit more complicated.</p><p>The core issue is: when a wireless client wants to send a packet to another host, it has to send 3 MAC addresses to the AP:</p><ul><li>AP&#x27;s MAC address</li><li>Client&#x27;s MAC address</li><li>Destination MAC address</li></ul><p>Remember that in AP / Managed mode, all communication has to pass through the AP. And each client to the AP needs to fill in its own MAC address as the Source address. If the client sends a MAC address belonging to a hosted virtual machine, that MAC address does not match the authenticated client&#x27;s MAC address, so the AP will reject it.</p><p>To solve this issue, we need to use an arp proxy. The manual way of doing this is using the <code>arp</code> utility. The automatic way is using <code>parprouted</code>. With an ARP proxy in place, the wireless client will send out forwarded packets with the MAC address changed to its authenticated MAC address. When packets come back, the MAC address is still the client&#x27;s MAC address, but the IP address is the VM&#x27;s IP address. The ARP proxy sees the destination IP address, looks it up in a table, and replaces the destination MAC address of the packet to be the destination VM&#x27;s MAC address.</p><h2>Routed</h2><p>Routed is basically NAT, with 2 major differences:</p><ul><li>Incoming connections are allowed and routed to the requested hosts</li><li>Outgoing connections still bear their original IP address</li></ul><p>However, without a static route set up on the gateway, the VM&#x27;s cannot access anything outside the local network. When it tries to do so, the gateway will be unable to return packets -- it doesn&#x27;t know where to send the packets to.</p><p>Setting up static routes on other machines in the local network only enable communication between the nodes and the VM&#x27;s.</p><h2>NAT</h2><p>With this set up:</p><ul><li>Incoming connections are not allowed, unless initiated by a VM. This means nodes in the local network cannot access VM&#x27;s.</li><li>Outgoing connections are masqueraded, so the gateway knows where to send the return packets to. This means the VM&#x27;s can access the local network and everything outside the local network.</li></ul><p>To enable seamless internode communication, we need to:</p><ul><li>Allow incoming connections. This effectively makes the whole NAT subnet be a DMZ.</li><li>Forward connections to nested VM&#x27;s within virtualized NAT networks.</li></ul><p>To allow incoming connections, we need to do two things:</p><ul><li>remove this rule: <code>-A LIBVIRT_FWI -o virbr0 -j REJECT --reject-with icmp-port-unreachable</code></li><li>forward connections:<ul><li>192.168.124.0/24 via 192.168.122.223</li><li>192.168.125.0/24 via 192.168.122.74</li><li>192.168.126.0/24 via 192.168.122.91</li></ul></li></ul><pre><code class="language-xml">&lt;route address=&quot;192.168.124.0&quot; prefix=&quot;24&quot; gateway=&quot;192.168.122.223&quot;/&gt;
-&lt;route address=&quot;192.168.125.0&quot; prefix=&quot;24&quot; gateway=&quot;192.168.122.74&quot;/&gt;
-&lt;route address=&quot;192.168.126.0&quot; prefix=&quot;24&quot; gateway=&quot;192.168.122.91&quot;/&gt;
-</code></pre><p>To enable forwarding, we need to manipulate iptables rules using hooks. Be careful though, when a qemu hook is called, and a non-zero exit status is returned, all domains are destroyed.</p><p>If a hook script is not executable, then a log line will be printed on libvirtd&#x27;s log. But domains can be started and stopped.</p><h2>Open</h2><p>With &quot;Open&quot; mode, no iptables rules are set by default. We would then need to specify our own rules.</p><p>TODO: Propose a &quot;Custom&quot; mode, so that we don&#x27;t need to use hooks</p><h3>Events</h3><p>TODO: propose a multi-level tree of drop-in scripts:
-make a sample implementation using scripts</p><p>/etc/libvirtd/hooks/qemu.d/guest1/prepare/begin
-/etc/libvirtd/hooks/qemu.d/guest1/start/begin
-/etc/libvirtd/hooks/qemu.d/guest1/started/begin
-/etc/libvirtd/hooks/qemu.d/guest1/stopped/end</p><p><a href="https://libvirt.org/hooks.html">https://libvirt.org/hooks.html</a></p><ul><li>virsh net-destroy
-iptables rules for the network are deleted</li></ul><pre><code>/etc/libvirt/hooks/network default stopped end -
-</code></pre><ul><li>virsh net-start
-iptables rules for the network are applied</li></ul><pre><code>/etc/libvirt/hooks/network default start begin -
-/etc/libvirt/hooks/network default started begin -
-</code></pre><ul><li>virsh start</li></ul><pre><code>/etc/libvirt/hooks/qemu ub16 prepare begin -
-/etc/libvirt/hooks/network default port-created begin -
-/etc/libvirt/hooks/qemu ub16 start begin -
-/etc/libvirt/hooks/qemu ub16 started begin -
-</code></pre><p>if a domain is started but its network is not active, the domain will fail to start</p><pre><code>/etc/libvirt/hooks/qemu ub16 prepare begin -
-/etc/libvirt/hooks/qemu ub16 stopped end -
-/etc/libvirt/hooks/qemu ub16 release end -
-</code></pre><ul><li>virsh shutdown / virsh destroy</li></ul><pre><code>/etc/libvirt/hooks/qemu ub16 stopped end -
-/etc/libvirt/hooks/network default port-deleted begin -
-/etc/libvirt/hooks/qemu ub16 release end -
-</code></pre><ul><li>systemctl stop libvirtd
-iptables rules are not touched</li></ul><pre><code>/etc/libvirt/hooks/daemon - shutdown - shutdown
-</code></pre><ul><li>systemctl start libvirtd
-iptables rules for the active networks are applied</li></ul><pre><code>/etc/libvirt/hooks/daemon - start - start
-</code></pre><p>networks marked as &quot;Autostart&quot; are not started
-domains that are running trigger these events</p><pre><code>/etc/libvirt/hooks/network default port-created begin -
-/etc/libvirt/hooks/qemu ovz6 reconnect begin -
-</code></pre><ul><li><p>systemctl restart libvirtd
-same as stop then immediately start</p></li><li><p>systemctl reload libvirtd
-the daemon hook is run before the iptables rules are applied
-iptables rules for the active networks are applied</p></li></ul><pre><code>/etc/libvirt/hooks/daemon - reload begin SIGHUP
-</code></pre><p>if some networks marked as &quot;Autostart&quot; are not active, then those networks are started, and triggers these events:</p><pre><code>/etc/libvirt/hooks/network default start begin -
-/etc/libvirt/hooks/network default started begin -
-</code></pre><p>if libvirtd is running, base libvirt chains are created:</p><pre><code>*mangle
--A POSTROUTING -j LIBVIRT_PRT
-*nat
--A POSTROUTING -j LIBVIRT_PRT
-*filter
--A INPUT -j LIBVIRT_INP
--A FORWARD -j LIBVIRT_FWX
--A FORWARD -j LIBVIRT_FWI
--A FORWARD -j LIBVIRT_FWO
--A OUTPUT -j LIBVIRT_OUT
-</code></pre>]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Installing Proxmox VE on Debian Bullseye]]></title>
-        <id>/2022/01/26/installing-proxmox-ve-on-debian-bullseye</id>
-        <link href="https://wpyoga.github.io/blog/2022/01/26/installing-proxmox-ve-on-debian-bullseye"/>
-        <updated>2022-01-26T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[I tried to install Proxmox VE 7.1 as a VM using libvirt, but ran into two issues:]]></summary>
-        <content type="html"><![CDATA[<p>I tried to install Proxmox VE 7.1 as a VM using libvirt, but ran into two issues:</p><ul><li>The official ISO image cannot be booted as a regular Linux installation ISO, because it does not have Joliet extensions</li><li>The official installer is GUI-based, so we cannot install it over a serial console</li></ul><h2>Background</h2><p>I wanted to learn Proxmox. Since I already have a VM server using libvirt, I figured I should install Proxmox VE as a virtual machine. I&#x27;ve installed OpenVZ 6 and 7 before as virtual machines, so it should be straightforward.</p><p>However, as mentioned above, I ran into two issues. Therefore I will try to install Proxmox on Debian Bullseye instead, following this tutorial: <a href="https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_11_Bullseye">https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_11_Bullseye</a></p><h2>Planning</h2><p>Base OS: Debian 11.2.0
-Network: 192.168.126.0/24</p><h2>Base OS installation</h2><p>First, install Debian 11 as usual. The thing about Debian installers is that the location we choose determines our timezone. Suppose I live in Asia, and I would like my laptop to have the English (US) locale, what should I do?</p><p>Therefore I usually pretend I&#x27;m in the USA, then change the timezone after installation is complete. This is much easier than changing the locale.</p><h2>Proxmox-specific changes</h2><p>After installation, <code>/etc/hosts</code> will look something like this:</p><pre><code>127.0.0.1   localhost
-127.0.1.1   my-hostname
-
-# The following lines are desirable for IPv6 capable hosts
-::1     localhost ip6-localhost ip6-loopback
-ff02::1 ip6-allnodes
-ff02::2 ip6-allrouters
-</code></pre><p>First, check the ip address of the node. An internal IP address is fine. This can be done using <code>ip addr</code>.</p><p>Remove the line <code>127.0.1.1	my-hostname</code> and replace it with the reachable IP address:</p><pre><code>192.168.122.91  my-hostname
-</code></pre><p>Note to self: submit a correction or register an account: <a href="https://forum.proxmox.com/threads/how-can-we-contribute-to-the-wiki.93970/">https://forum.proxmox.com/threads/how-can-we-contribute-to-the-wiki.93970/</a></p><h2>Reboot</h2><p>Now we shut down the VM, and enable nested virtualization for the libvirt domain: <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_virtualization/creating-nested-virtual-machines_configuring-and-managing-virtualization">https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_virtualization/creating-nested-virtual-machines_configuring-and-managing-virtualization</a></p><p>Then start the domain again, which will boot into the Proxmox kernel.</p><h2>Create a non-root user</h2><pre><code class="language-shell-session">$ sudo pveum useradd william@pve
-$ sudo pveum passwd william@pve
-</code></pre><p>Note that <code>pve</code> is the realm. This is not the node&#x27;s hostname.</p><p>Also create a group for the user:</p><pre><code class="language-shell-session">$ sudo pveum group add admin
-$ sudo pveum user modify william@pve -append -groups admin
-</code></pre><p>Then grant permissions to the group:</p><pre><code class="language-shell-session">$ sudo pveum acl modify / --roles Administrator --groups admin
-</code></pre><h2>Web GUI</h2><p>Open <a href="https://192.168.122.91:8006/">https://192.168.122.91:8006/</a> in a browser. Note that this is only accessible via HTTPS. Plain HTTP won&#x27;t work.</p><p>Note to self: try to configure a redirect here (HTTP -&gt; HTTPS)</p><h2>Run Proxmox without a subscription</h2><p>Remove <code>/etc/apt/sources.list.d/pve-enterprise.list</code></p><p>Note to self: try to figure out how to remove this automatically.</p><h2>Create a network bridge</h2><p>Since my home server is connected to the router via Wi-Fi, let&#x27;s create a bridge for a routed network.
-<a href="https://192.168.122.91:8006/pve-docs/chapter-sysadmin.html#_routed_configuration">https://192.168.122.91:8006/pve-docs/chapter-sysadmin.html#_routed_configuration</a></p><p>The bridge should get an IP address of .1 in a new subnet, and there should be no interface added to it.
-In my example, the CIDR is 192.168.126.1/24.</p><h2>Physical host network</h2><p>on the physical host</p><pre><code class="language-shell-session">$ sudo ip route add 192.168.126.0/24 via 192.168.122.91
-</code></pre><p>or:</p><pre><code class="language-shell-session">$ virsh net-edit default &amp;&amp; virsh net-destroy default &amp;&amp; virsh net-start default &amp;&amp; sudo systemctl restart libvirtd
-</code></pre><pre><code class="language-xml">&lt;network&gt;
-  ...
-  &lt;route family=&#x27;ipv4&#x27; address=&#x27;192.168.126.0&#x27; prefix=&#x27;24&#x27; gateway=&#x27;192.168.122.91&#x27;/&gt;
-&lt;/network&gt;
-</code></pre><pre><code>$ sudo iptables -I FORWARD -s 192.168.126.0/24 -i virbr0 -j ACCEPT
-$ sudo iptables -I FORWARD -d 192.168.126.0/24 -o virbr0 -j ACCEPT
-$ sudo iptables -t nat -A POSTROUTING -s 192.168.126.0/24 ! -d 192.168.126.0/24 -j MASQUERADE
-</code></pre><p>install iptables-persistent
-then create /etc/iptables/rules.v4</p><pre><code>*filter
--A FORWARD -d 192.168.126.0/24 -o virbr0 -j ACCEPT
--A FORWARD -s 192.168.126.0/24 -i virbr0 -j ACCEPT
-
-*nat
--A POSTROUTING -s 192.168.126.0/24 ! -d 192.168.126.0/24 -j MASQUERADE
-</code></pre><h2>Install dnsmasq to provide DHCP server</h2><p>From: <a href="https://bobcares.com/blog/dnsmasq-dhcp-server-in-proxmox/">https://bobcares.com/blog/dnsmasq-dhcp-server-in-proxmox/</a></p><pre><code>$ sudo apt install dnsmasq
-</code></pre><p>Configure it:</p><pre><code class="language-title=/etc/dnsmasq.conf">domain-needed
-bogus-priv
-interface=vmbr0
-dhcp-range=192.168.126.2,192.168.126.254,12h
-</code></pre><p>Then restart the dnsmasq service.</p><h2>Use systemd-resolved to provide DHCP server</h2><p><a href="https://www.freedesktop.org/software/systemd/man/systemd.network.html">https://www.freedesktop.org/software/systemd/man/systemd.network.html</a></p><p>Create a file <code>/etc/systemd/network/proxmox.network</code>:</p><pre><code class="language-ini">[Match]
-Name=vmbr*
-Driver=bridge
-
-[Network]
-Address=192.168.126.1/24
-DHCPServer=yes
-IPMasquerade=yes
-
-[DHCPServer]
-DNS=8.8.8.8
-</code></pre><p>This will enable IP forwarding etc.</p><h2>Creating a VM</h2><p>Put ISO files in <code>/var/lib/vz/template/iso</code></p>]]></content>
-    </entry>
-    <entry>
         <title type="html"><![CDATA[Vaccination Certificate Download Via PeduliLindungi]]></title>
         <id>/2022/01/24/vaccine-certrificate</id>
         <link href="https://wpyoga.github.io/blog/2022/01/24/vaccine-certrificate"/>
@@ -355,107 +276,6 @@ i A mysql-community-server-core             - MySQL Server Core Binaires
 i   mysql-workbench-community               - MySQL Workbench
 </code></pre><p>But what do <code>i</code> and <code>A</code> mean?</p><h2>The documentation</h2><p>It&#x27;s not easy to find this piece of information. I had to Google a whlie to finally find this: <a href="https://www.debian.org/doc/manuals/aptitude/rn01re01.en.html">https://www.debian.org/doc/manuals/aptitude/rn01re01.en.html</a></p><p>Under <code>search</code>, it explains thus:</p><blockquote><p>Each search result is listed on a separate line. The first character of each line indicates the current state of the package: the most common states are p, meaning that no trace of the package exists on the system, c, meaning that the package was deleted but its configuration files remain on the system, i, meaning that the package is installed, and v, meaning that the package is virtual. The second character indicates the stored action (if any; otherwise a blank space is displayed) to be performed on the package, with the most common actions being i, meaning that the package will be installed, d, meaning that the package will be deleted, and p, meaning that the package and its configuration files will be removed. If the third character is A, the package was automatically installed.</p></blockquote><p>A more detailed documentation can be found here: <a href="https://www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html">https://www.debian.org/doc/manuals/aptitude/ch02s02s02.en.html</a></p><p>In my case, what I need to know is:</p><ul><li><code>i</code> means the package is installed</li><li><code>A</code> means the package was installed automatically -- this means it&#x27;s a dependency of another package</li></ul><p>Alright, now that we know, and because we don&#x27;t need those packages,we can remove all the installed packages directly, except the ones marked as &quot;automatically installed&quot;. Those packages should be automatically removed anyway:</p><pre><code class="language-shell-session">$ sudo apt purge --autoremove mysql-apt-config mysql-common mysql-community-server mysql-workbench-community
 </code></pre><p>After that, <code>apt search &quot;?origin (MySQL) ?installed&quot;</code> doesn&#x27;t return anything, so the repo should be safe to remove, or so I thought.</p><p>It turns out that removing <code>mysql-apt-config</code> also removes the repo, so that saves me another step.</p>]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Installing OpenVZ 6]]></title>
-        <id>/2022/01/17/installing-openvz-6</id>
-        <link href="https://wpyoga.github.io/blog/2022/01/17/installing-openvz-6"/>
-        <updated>2022-01-17T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[OpenVZ 6 is an obsolete piece of technology. However, I have a small project whereby I upgrade a Ubuntu 16.04 installation to Ubuntu 18.04 and then 20.04 and eventually 22.04, completely disregarding any potential issues and problems that may happen :)]]></summary>
-        <content type="html"><![CDATA[<p>OpenVZ 6 is an obsolete piece of technology. However, I have a small project whereby I upgrade a Ubuntu 16.04 installation to Ubuntu 18.04 and then 20.04 and eventually 22.04, completely disregarding any potential issues and problems that may happen :)</p><p>Also, I may be able to research a migration strategy for OpenVZ 6 to KVM. One possible way is to install OpenVZ 6 inside a KVM virtual machine, and then migrating each container as a single container inside the new host.</p><p>The basic process is to install CentOS 6 as the base OS, then install OpenVZ 6 on top of it. After installation, we have to reboot into the newly-installed OpenVZ kernel. This is a modified kernel based off of RHEL 6 / CentOS 6 that provides the containerization features.</p><p>As a bonus, I&#x27;m installing all of this inside a KVM virtual machine.</p><h2>Install CentOS 6</h2><p>TODO: move this to another document &quot;Installing CentOS 6 in 2022&quot;.</p><p>download centos 6:
-<a href="https://vault.centos.org/6.10/isos/x86_64/">https://vault.centos.org/6.10/isos/x86_64/</a>
-<a href="http://ftp.uem.br/linux/CentOS/6.10/isos/x86_64/">http://ftp.uem.br/linux/CentOS/6.10/isos/x86_64/</a>
-<a href="https://mirror.nsc.liu.se/centos-store/6.10/isos/x86_64/">https://mirror.nsc.liu.se/centos-store/6.10/isos/x86_64/</a>
-<a href="http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.10/isos/x86_64/">http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.10/isos/x86_64/</a>
-<a href="https://img.cs.montana.edu/linux/centos/6.10/isos/x86_64/">https://img.cs.montana.edu/linux/centos/6.10/isos/x86_64/</a></p><p>install centos 6
-enable dhcp: <a href="https://www.serverlab.ca/tutorials/linux/administration-linux/configure-centos-6-network-settings/">https://www.serverlab.ca/tutorials/linux/administration-linux/configure-centos-6-network-settings/</a>
-(just change ONBOOT=yes)</p><p>use vault repo (since centos 6 is already EOL)
-<a href="https://www.getpagespeed.com/server-setup/how-to-fix-yum-after-centos-6-went-eol">https://www.getpagespeed.com/server-setup/how-to-fix-yum-after-centos-6-went-eol</a>
-edit /etc/yum.repos.d/CentOS-Base.repo
-remove all mirrorlist= lines
-uncomment all baseurl= lines, change the domain to vault.centos.org</p><pre><code>$ sudo sed -i /etc/yum.repos.d/CentOS-Base.repo -e &#x27;/^mirrorlist=/d&#x27; -e &#x27;s,^#baseurl=http://mirror.centos.org/,baseurl=https://vault.centos.org/,&#x27;
-</code></pre><p>yum update</p><p>make a new user</p><pre><code># useradd william -G adm
-</code></pre><p>change hostname</p><pre><code>$ sudo hostname cos6
-$ vi /etc/sysconfig/network
-HOSTNAME=cos6
-</code></pre><p>enable sudo
-$ visudo william
-add the line
-william ALL=(ALL)   NOPASSWD:ALL</p><p>enable ssh
-$ mkdir /home/william/.ssh
-$ vi /home/william/.ssh/authorized_keys
-$ chmod 700 /home/william/.ssh
-$ chown -R william: /home/william
-$ ls -la /home/william/.ssh</p><p>install &amp; enable acpid, so that the VM can be shut down gracefully by libvirt / proxmox</p><pre><code>$ sudo yum install acpid
-$ sudo service acpid start
-$ sudo service acpid status
-</code></pre><h2>Install OpenVZ 6</h2><p>then follow the instructions here:
-<a href="https://wiki.openvz.org/Quick_Installation_CentOS_6">https://wiki.openvz.org/Quick_Installation_CentOS_6</a></p><p>$ sudo curl <a href="http://download.openvz.org/openvz.repo">http://download.openvz.org/openvz.repo</a> -o/etc/yum.repos.d/openvz.repo
-$ sudo rpm --import <a href="http://download.openvz.org/RPM-GPG-Key-OpenVZ">http://download.openvz.org/RPM-GPG-Key-OpenVZ</a>
-$ yum install vzkernel vzctl vzquota</p><h1>disable disk quota system</h1><p>/etc/vz/vz.conf
-DISK_QUOTA=no</p><h1>you can install ploop, but it is not recommended</h1><p>/etc/vz/vz.conf
-VE_LAYOUT=simfs</p><p>make sure vzkernel is the default boot option
-$ sudo vi /boot/grub/menu.lst</p><p>enable ip forwarding etc
-$ sudo vi /etc/sysctl.conf
-net.ipv4.ip_forward = 1
-net.ipv4.conf.default.proxy_arp = 0
-net.ipv4.conf.all.rp_filter = 1
-#kernel.sysrq = 1
-net.ipv4.conf.default.send_redirects = 1
-net.ipv4.conf.all.send_redirects = 0
-net.ipv4.icmp_echo_ignore_broadcasts=1
-net.ipv4.conf.default.forwarding=1</p><h3>If using veth</h3><p>for VETH: create a bridge &amp; configure vznet script
-$ sudo vi /etc/sysconfig/network-scripts/ifcfg-vmbr0
-DEVICE=&quot;vmbr0&quot;
-BOOTPROTO=&quot;static&quot;
-IPV6INIT=&quot;no&quot;
-ONBOOT=&quot;yes&quot;
-TYPE=&quot;Bridge&quot;
-DELAY=0
-IPADDR=192.168.124.99
-NETMASK=255.255.255.0
-GATEWAY=192.168.124.1
-$ sudo vi /etc/sysconfig/network-scripts/ifcfg-eth0
-DEVICE=eth0
-TYPE=Ethernet
-ONBOOT=yes
-IPV6INIT=no
-BRIDGE=vmbr0
-$ sudo vi /etc/vz/vznet.conf
-EXTERNAL_SCRIPT=/usr/sbin/vznetaddbr</p><h3>Create a container</h3><p>create container
-$ sudo vzctl create 101 --ostemplate ubuntu-16.04-x86_64 --layout simfs --hostname server101 --ipadd 192.168.124.101 --diskspace 8G
-$ sudo vzctl set 101 --save --onboot yes --nameserver 8.8.8.8 --cpus 1 --ram 1G</p><h1>use --name server101 ???</h1><p>note: if using ploop, sometimes container can run out of disk space, especially when there is lots of writing and erasing. to solve this: ploop discard -d /dev/ploopXXXXX / or / vzctl compact 101
-it&#x27;s much simpler to just use simfs though</p><p>configure venet: <a href="https://wiki.openvz.org/Virtual_network_device">https://wiki.openvz.org/Virtual_network_device</a></p><p>$ sudo vzctl start 101</p><h1>ubuntu 16.04 template</h1><h1>ubuntu useradd needs extra options</h1><p>$ sudo vzctl exec 101 useradd -m -s /bin/bash william
-$ sudo vzctl exec 101 usermod -a -G systemd-journal william
-$ sudo vzctl exec 101 mkdir /home/william/.ssh
-$ sudo vi /vz/root/101/home/william/.ssh/authorized_keys
-$ sudo vzctl exec 101 chmod 700 /home/william/.ssh
-$ sudo vzctl exec 101 chown -R william: /home/william
-$ sudo vzctl exec 101 ls -la /home/william/.ssh</p><p>$ sudo vi /vz/root/101/etc/sudoers
-william ALL=(ALL:ALL) NOPASSWD: ALL</p><p>login to the node, then
-$ sudo dpkg-reconfigure locales
-select en_US.UTF-8 to generate
-and select en_US.UTF-8 as the system default locale</p><hr/><p>to list all containers: vzlist --all</p><hr/><h3>Configure networking</h3><p>on the openvz host
-$ sudo iptables -D FORWARD -j REJECT --reject-with icmp-host-prohibited</p><p>/etc/sysconfig/iptables
-remove the line:</p><pre><code>-A FORWARD -j REJECT --reject-with icmp-host-prohibited
-</code></pre><p>on the physical host</p><pre><code>$ sudo ip route add 192.168.124.0/24 via 192.168.122.223
-</code></pre><p>or:</p><p>$ virsh net-edit default &amp;&amp; virsh net-destroy default &amp;&amp; virsh net-start default &amp;&amp; sudo systemctl restart libvirtd</p><pre><code class="language-xml">&lt;network&gt;
-  ...
-  &lt;route family=&#x27;ipv4&#x27; address=&#x27;192.168.124.0&#x27; prefix=&#x27;24&#x27; gateway=&#x27;192.168.122.223&#x27;/&gt;
-&lt;/network&gt;
-</code></pre><h1>on the physical host: copy libvirt rules</h1><h1>the last rule is actually the most important one</h1><p>sudo iptables -D LIBVIRT_FWI -o virbr0 -j REJECT --reject-with icmp-port-unreachable
-sudo iptables -I FORWARD -s 192.168.124.0/24 -i virbr0 -j ACCEPT
-sudo iptables -I FORWARD -d 192.168.124.0/24 -o virbr0 -j ACCEPT
-sudo iptables -t nat -A POSTROUTING -s 192.168.124.0/24 ! -d 192.168.124.0/24 -j MASQUERADE</p><p>install iptables-persistent
-then create /etc/iptables/rules.v4</p><pre><code>*filter
--A FORWARD -d 192.168.124.0/24 -o virbr0 -j ACCEPT
--A FORWARD -s 192.168.124.0/24 -i virbr0 -j ACCEPT
-COMMIT
-
-*nat
--A POSTROUTING -s 192.168.124.0/24 ! -d 192.168.124.0/24 -j MASQUERADE
-COMMIT
-</code></pre><p>don&#x27;t save the libvirt and wireguard rules to that file, those rules will be recreated when the corresponding services are started</p>]]></content>
     </entry>
     <entry>
         <title type="html"><![CDATA[Enabling IPv6 on Oracle Cloud Instance]]></title>

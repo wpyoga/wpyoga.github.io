@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[6833],{4319:function(e,u,t){t.r(u),t.d(u,{default:function(){return l}});var a=t(7294),n=t(7019);function l(){return a.createElement(n.Z,null,a.createElement("h1",null,"First React page"),a.createElement("p",null,"This is a React page"))}}}]);

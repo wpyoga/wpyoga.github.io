@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkwpyoga_docusaurus_blog=self.webpackChunkwpyoga_docusaurus_blog||[]).push([[6302],{3354:function(a){a.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"/blog/tags/debian","name":"debian","count":2,"permalink":"/blog/tags/debian"}')}}]);
