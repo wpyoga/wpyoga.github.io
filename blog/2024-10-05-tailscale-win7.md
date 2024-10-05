@@ -11,6 +11,10 @@ For work, I need to connect to remote VPN devices. My PLC programming software i
 
 The Windows 7 version I'm using is Windows Thin PC, which is a stripped-down version of Windows 7 (Windows Embedded Standard) that is only available in 32 bits. It is lightweight and runs well on my VM.
 
+# Installing a Windows hotfix
+
+I downloaded the KB2921916 hotfix from https://github.com/tailscale/tailscale/wiki/Win7. This is the exact link: https://pkgs.tailscale.com/mirror/Windows6.1-KB2921916-x86.msu.
+
 # Installing Tailscale
 
 I downloaded Tailscale 1.44.3 from https://pkgs.tailscale.com/stable/. This is the exact link: https://pkgs.tailscale.com/stable/tailscale-setup-1.44.3-x86.msi.
